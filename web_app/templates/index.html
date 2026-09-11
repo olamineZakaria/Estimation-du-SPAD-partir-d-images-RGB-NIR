@@ -1,0 +1,2190 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Explorateur d'images SPAD</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4/build/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2"></script>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 1600px; }
+  h1 { font-size: 1.4rem; }
+  h2.section { font-size: 1.1rem; margin: 2.5rem 0 1rem; border-top: 1px solid rgba(128,128,128,.3); padding-top: 1.5rem; }
+  .controls { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1.5rem; }
+  .field { display: flex; flex-direction: column; gap: .25rem; }
+  label { font-size: .8rem; opacity: .75; }
+  select, input { padding: .4rem .5rem; font-size: .95rem; min-width: 220px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+  .card { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; padding: .75rem; }
+  .card h2 { font-size: .95rem; margin: 0 0 .5rem; }
+  .card img { max-width: 100%; display: block; border-radius: 4px; cursor: zoom-in; }
+  .empty { opacity: .6; font-size: .85rem; }
+  .error { color: #d33; font-size: .85rem; }
+  #nameList { max-width: 220px; }
+
+  .chart-card { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; padding: .75rem; }
+  .chart-card canvas { max-height: 340px; }
+  #scatterCard canvas { max-height: 600px; }
+  .scatter-row { display: flex; gap: 1.5rem; align-items: stretch; }
+  .stat-box { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; padding: 1rem 1.5rem;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 140px; }
+  .stat-box .stat-label { font-size: .8rem; opacity: .75; }
+  .stat-box .stat-value { font-size: 2.2rem; font-weight: 600; }
+  .stat-box .stat-sub { font-size: .78rem; opacity: .6; margin-top: .25rem; }
+  table.stats { border-collapse: collapse; width: 100%; font-size: .82rem; margin-top: .5rem; }
+  table.stats th, table.stats td { border: 1px solid rgba(128,128,128,.3); padding: .3rem .5rem; text-align: right; }
+  table.stats th:first-child, table.stats td:first-child { text-align: left; }
+
+  #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85);
+    align-items: center; justify-content: center; z-index: 100; cursor: zoom-out; }
+  #lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 6px; }
+  .lightbox-nav { position: fixed; top: 50%; transform: translateY(-50%); z-index: 101; border: none; border-radius: 999px; width: 3rem; height: 3rem;
+    background: rgba(255,255,255,.9); color: #111; font-size: 1.5rem; cursor: pointer; }
+  .lightbox-nav:hover { background: #fff; }
+  .lightbox-prev { left: 1rem; }
+  .lightbox-next { right: 1rem; }
+  #pointInfo { border: 1px solid rgba(128,128,128,.35); border-radius: 8px; padding: .75rem; margin-top: 1rem; }
+
+</style>
+</head>
+<body>
+<h1>Explorateur d'images SPAD</h1>
+
+<details style="margin-bottom: 1.5rem; border: 1px solid rgba(128,128,128,.35); border-radius: 8px; padding: 0.75rem; max-width: 900px;">
+  <summary style="font-size: 0.9rem; font-weight: 500; cursor: pointer; user-select: none; outline: none; opacity: 0.85;">
+    Informations de mesure et durées par site
+  </summary>
+  <div style="margin-top: 0.75rem; overflow-x: auto;">
+    <table class="stats" style="width: 100%; margin-top: 0; text-align: left; font-size: 0.85rem;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 0.4rem;">Site</th>
+          <th style="text-align: left; padding: 0.4rem;">Début de mesure</th>
+          <th style="text-align: left; padding: 0.4rem;">Fin de mesure</th>
+          <th style="text-align: right; padding: 0.4rem;">Durée (heures)</th>
+          <th style="text-align: right; padding: 0.4rem;">Durée (H:MM)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align: left; padding: 0.4rem;"><strong>Clermont-Ferrand</strong></td>
+          <td style="text-align: left; padding: 0.4rem;">20 mai 2026 à 14:14:52</td>
+          <td style="text-align: left; padding: 0.4rem;">20 mai 2026 à 15:27:10</td>
+          <td style="text-align: right; padding: 0.4rem;">1.21 h</td>
+          <td style="text-align: right; padding: 0.4rem;">~ 1h 12m</td>
+        </tr>
+        <tr>
+          <td style="text-align: left; padding: 0.4rem;"><strong>Mauguio</strong></td>
+          <td style="text-align: left; padding: 0.4rem;">16 avril 2026 à 10:25:05</td>
+          <td style="text-align: left; padding: 0.4rem;">16 avril 2026 à 12:30:41</td>
+          <td style="text-align: right; padding: 0.4rem;">2.09 h</td>
+          <td style="text-align: right; padding: 0.4rem;">~ 2h 05m</td>
+        </tr>
+        <tr>
+          <td style="text-align: left; padding: 0.4rem;"><strong>Toulouse</strong></td>
+          <td style="text-align: left; padding: 0.4rem;">23 avril 2026 à 12:38:02</td>
+          <td style="text-align: left; padding: 0.4rem;">23 avril 2026 à 13:33:00</td>
+          <td style="text-align: right; padding: 0.4rem;">0.92 h</td>
+          <td style="text-align: right; padding: 0.4rem;">~ 0h 55m</td>
+        </tr>
+        <tr>
+          <td style="text-align: left; padding: 0.4rem;"><strong>Zurich (23-03)</strong></td>
+          <td style="text-align: left; padding: 0.4rem;">23 mars 2026 à 14:15:04</td>
+          <td style="text-align: left; padding: 0.4rem;">23 mars 2026 à 14:40:21</td>
+          <td style="text-align: right; padding: 0.4rem;">0.42 h</td>
+          <td style="text-align: right; padding: 0.4rem;">~ 0h 25m</td>
+        </tr>
+        <tr>
+          <td style="text-align: left; padding: 0.4rem;"><strong>Zurich (07-04)</strong></td>
+          <td style="text-align: left; padding: 0.4rem;">07 avril 2026 à 14:03:29</td>
+          <td style="text-align: left; padding: 0.4rem;">07 avril 2026 à 14:20:19</td>
+          <td style="text-align: right; padding: 0.4rem;">0.28 h</td>
+          <td style="text-align: right; padding: 0.4rem;">~ 0h 17m</td>
+        </tr>
+        <tr>
+          <td style="text-align: left; padding: 0.4rem;"><strong>Zurich (21-04)</strong></td>
+          <td style="text-align: left; padding: 0.4rem;">21 avril 2026 à 13:32:19</td>
+          <td style="text-align: left; padding: 0.4rem;">21 avril 2026 à 14:03:51</td>
+          <td style="text-align: right; padding: 0.4rem;">0.53 h</td>
+          <td style="text-align: right; padding: 0.4rem;">~ 0h 32m</td>
+        </tr>
+        <tr>
+          <td style="text-align: left; padding: 0.4rem;"><strong>Zurich (05-05)</strong></td>
+          <td style="text-align: left; padding: 0.4rem;">05 mai 2026 à 13:59:26</td>
+          <td style="text-align: left; padding: 0.4rem;">05 mai 2026 à 14:21:14</td>
+          <td style="text-align: right; padding: 0.4rem;">0.36 h</td>
+          <td style="text-align: right; padding: 0.4rem;">~ 0h 22m</td>
+        </tr>
+        <tr>
+          <td style="text-align: left; padding: 0.4rem;"><strong>Zurich (01-06)</strong></td>
+          <td style="text-align: left; padding: 0.4rem;">01 juin 2026 à 14:54:40</td>
+          <td style="text-align: left; padding: 0.4rem;">01 juin 2026 à 15:19:24</td>
+          <td style="text-align: right; padding: 0.4rem;">0.41 h</td>
+          <td style="text-align: right; padding: 0.4rem;">~ 0h 25m</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+
+<div class="controls">
+  <div class="field">
+    <label for="site">Site</label>
+    <select id="site">
+      <option value="">-- choisir --</option>
+      {% for s in sites %}
+      <option value="{{ s }}">{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="name">Nom</label>
+    <input list="nameList" id="name" placeholder="Rechercher un nom..." autocomplete="off" disabled>
+    <datalist id="nameList"></datalist>
+  </div>
+
+  <div class="field">
+    <label for="scenario">Scenario</label>
+    <select id="scenario" disabled>
+      <option value="">-- choisir --</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>&nbsp;</label>
+    <button type="button" id="searchBtn">Rechercher</button>
+  </div>
+
+</div>
+
+<h2 class="section" style="margin-top:0; border-top:none; padding-top:0;">SPAD vs indice</h2>
+<div class="controls" style="margin-bottom:1rem;">
+  <div class="field">
+    <label>Sites</label>
+    <div id="siteChecks" style="display:flex; flex-wrap:wrap; gap:.15rem .75rem; max-width:360px;"></div>
+  </div>
+  <div class="field">
+    <label for="scatterScenarioSel">Scenario</label>
+    <select id="scatterScenarioSel"></select>
+  </div>
+  <div class="field">
+    <label for="indexSel">Indice</label>
+    <div style="display:flex; gap:.35rem; align-items:center;">
+      <select id="indexSel" style="min-width: 160px;"></select>
+      <button type="button" id="openBuilderBtn" style="padding: .4rem .6rem; cursor: pointer; border: 1px solid rgba(128,128,128,.35); border-radius: 4px; background: rgba(128,128,128,.1);" title="Créer un indice spectral personnalisé">➕</button>
+      <button type="button" id="deleteIndexBtn" style="padding: .4rem .6rem; cursor: pointer; border: 1px solid #d33; border-radius: 4px; background: rgba(211,47,47,.1); color: #d33; display: none;" title="Supprimer cet indice personnalisé">🗑️</button>
+    </div>
+  </div>
+  <div class="field">
+    <label for="statSel">Statistique</label>
+    <select id="statSel"></select>
+  </div>
+  <div class="field">
+    <label for="xAxisSel">Variable Axe X</label>
+    <select id="xAxisSel" style="min-width: 160px;">
+      <option value="spad_mean">Moyenne (SPAD)</option>
+      <option value="Feuille_1">Feuille 1</option>
+      <option value="Feuille_2">Feuille 2</option>
+      <option value="Feuille_3">Feuille 3</option>
+      <option value="F1_F2">Moyenne F1+F2</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="zenithClusterSel">Clustering Zénithal</label>
+    <select id="zenithClusterSel" style="min-width: 160px;">
+      <option value="0">Désactivé</option>
+      <option value="2">2 groupes (Bas/Haut)</option>
+      <option value="3">3 groupes (Bas/Moyen/Haut)</option>
+      <option value="4">4 groupes</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="excludeIndexOutliers">&nbsp;</label>
+    <label style="display:flex; align-items:center; gap:.4rem; font-size:.9rem; min-width:unset;">
+      <input type="checkbox" id="excludeIndexOutliers" style="min-width:unset; width:auto;">
+      Exclure les valeurs aberrantes (indice)
+    </label>
+  </div>
+  <div class="field">
+    <label for="excludeSpadOutliers">&nbsp;</label>
+    <label style="display:flex; align-items:center; gap:.4rem; font-size:.9rem; min-width:unset;">
+      <input type="checkbox" id="excludeSpadOutliers" style="min-width:unset; width:auto;">
+      Exclure les valeurs aberrantes (SPAD)
+    </label>
+  </div>
+  <div class="field">
+    <label for="showSolarZenithVal">&nbsp;</label>
+    <label style="display:flex; align-items:center; gap:.4rem; font-size:.9rem; min-width:unset;">
+      <input type="checkbox" id="showSolarZenithVal" style="min-width:unset; width:auto;">
+      Afficher la valeur de l'angle solaire
+    </label>
+  </div>
+  <div class="field" id="mireColorField">
+    <label for="mireColorSel">Dégradé couleur (Intensité mire)</label>
+    <select id="mireColorSel" style="min-width: 200px;">
+      <option value="none">Désactivé (par site/groupe)</option>
+      <option value="intensite_mire_B" selected>Intensité Mire Bleu (B)</option>
+      <option value="intensite_mire_R">Intensité Mire Rouge (R)</option>
+      <option value="intensite_mire_G">Intensité Mire Vert (G)</option>
+      <option value="intensite_mire_NIR">Intensité Mire NIR</option>
+    </select>
+  </div>
+  <div class="field" id="mirePaletteField">
+    <label for="mirePaletteSel">Palette de couleur</label>
+    <select id="mirePaletteSel" style="min-width: 190px;">
+      <option value="red" selected>Rouge (Clair &rarr; Rouge Foncé)</option>
+      <option value="band">Couleur de la bande (R/V/B/NIR)</option>
+      <option value="blue">Bleu (Clair &rarr; Bleu Profond)</option>
+      <option value="heat">Chaleur (Jaune &rarr; Rouge Vif)</option>
+      <option value="turbo">Multicolore (Turbo)</option>
+    </select>
+  </div>
+  <div class="field" id="groupByVarietyField" style="display:none;">
+    <label for="groupByVariety">&nbsp;</label>
+    <label style="display:flex; align-items:center; gap:.4rem; font-size:.9rem; min-width:unset;">
+      <input type="checkbox" id="groupByVariety" style="min-width:unset; width:auto;">
+      Grouper par variété
+    </label>
+  </div>
+  <div class="field" id="varietyFiltersField" style="display:none; flex-direction:column; gap:.35rem; grid-column: 1 / -1; background:rgba(255,255,255,0.05); padding:.6rem; border-radius:6px; margin-top:.4rem;">
+    <div style="display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;">
+      <span style="font-size:.85rem; font-weight:bold;">Variétés à afficher :</span>
+      <a href="#" id="varietySelectAll" style="font-size:.8rem;">Tout sélectionner</a>
+      <a href="#" id="varietySelectNone" style="font-size:.8rem;">Tout désélectionner</a>
+    </div>
+    <div id="varietyChecks" style="display:flex; flex-wrap:wrap; gap:.6rem;"></div>
+  </div>
+  <div class="field">
+    <label>&nbsp;</label>
+    <button type="button" id="exportCsvBtn" disabled>Télécharger CSV filtré</button>
+  </div>
+</div>
+<div id="scatterMessage" class="empty">Choisissez au moins un site et un scenario pour afficher le nuage de points.</div>
+<div class="scatter-row" id="scatterRow" style="display:none">
+  <div class="chart-card" id="scatterCard" style="max-width: 1100px; flex: 1;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.35rem; gap:.5rem; flex-wrap:wrap;">
+      <span class="empty">Glisser = sélection rectangle, Ctrl+glisser = déplacer, molette = zoom, double-clic = exclure</span>
+      <div style="display:flex; gap:.4rem;">
+        <button type="button" id="restoreExcludedBtn" style="font-size:.75rem; padding:.2rem .5rem;">Réinclure les points exclus</button>
+        <button type="button" id="resetZoomBtn" style="font-size:.75rem; padding:.2rem .5rem;">Réinitialiser le zoom</button>
+      </div>
+    </div>
+    <div id="scatterCanvasWrap" style="position:relative;">
+      <canvas id="chartScatter"></canvas>
+      <div id="selectBoxEl" style="position:absolute; display:none; border:1px dashed #4c8bf5; background:rgba(76,139,245,0.15); pointer-events:none;"></div>
+    </div>
+    <div id="mireColorbarWrap" style="display:none; margin-top:.75rem; padding:.5rem .85rem; background:rgba(128,128,128,0.08); border-radius:6px; border:1px solid rgba(128,128,128,0.2);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.3rem; font-size:.82rem;">
+        <span id="mireColorbarTitle" style="font-weight:600;">Dégradé Rouge : Intensité Mire Bleu (DN/s)</span>
+        <span id="mireColorbarSub" style="font-size:.75rem; opacity:0.8;">Faible (rose clair) &rarr; Forte intensité (rouge bordeaux)</span>
+      </div>
+      <div id="mireColorbarGradient" style="height:14px; border-radius:4px; background:linear-gradient(to right, rgb(255, 215, 215), rgb(255, 110, 110), rgb(220, 25, 25), rgb(110, 0, 10)); box-shadow:inset 0 1px 2px rgba(0,0,0,0.25); border:1px solid rgba(128,128,128,0.3);"></div>
+      <div style="display:flex; justify-content:space-between; font-size:.78rem; opacity:0.9; margin-top:.25rem;">
+        <span id="mireColorMinVal">Min: 0</span>
+        <span id="mireColorMidVal">Médiane</span>
+        <span id="mireColorMaxVal">Max: 100</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat-box" style="min-width: 320px; align-items: stretch; padding: 0.75rem 1rem;">
+    <div class="stat-label" style="text-align: center; margin-bottom: 0.5rem; font-weight: bold;">Corrélations avec l'indice</div>
+    <table class="stats" id="correlationsTable" style="margin-top: 0; width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 0.3rem;">Variable</th>
+          <th style="text-align: right; padding: 0.3rem;">r (Pearson)</th>
+          <th style="text-align: right; padding: 0.3rem;">&rho; (Spearman)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr id="row-spad_mean">
+          <td style="text-align: left; padding: 0.3rem; font-weight: bold;">Moyenne (SPAD)</td>
+          <td class="r-val" style="text-align: right; padding: 0.3rem; font-weight: bold;">-</td>
+          <td class="rho-val" style="text-align: right; padding: 0.3rem; font-weight: bold;">-</td>
+        </tr>
+        <tr id="row-Feuille_1">
+          <td style="text-align: left; padding: 0.3rem;">Feuille 1</td>
+          <td class="r-val" style="text-align: right; padding: 0.3rem;">-</td>
+          <td class="rho-val" style="text-align: right; padding: 0.3rem;">-</td>
+        </tr>
+        <tr id="row-Feuille_2">
+          <td style="text-align: left; padding: 0.3rem;">Feuille 2</td>
+          <td class="r-val" style="text-align: right; padding: 0.3rem;">-</td>
+          <td class="rho-val" style="text-align: right; padding: 0.3rem;">-</td>
+        </tr>
+        <tr id="row-Feuille_3">
+          <td style="text-align: left; padding: 0.3rem;">Feuille 3</td>
+          <td class="r-val" style="text-align: right; padding: 0.3rem;">-</td>
+          <td class="rho-val" style="text-align: right; padding: 0.3rem;">-</td>
+        </tr>
+        <tr id="row-F1_F2">
+          <td style="text-align: left; padding: 0.3rem;">Moyenne F1+F2</td>
+          <td class="r-val" style="text-align: right; padding: 0.3rem;">-</td>
+          <td class="rho-val" style="text-align: right; padding: 0.3rem;">-</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="stat-sub" id="corrN" style="text-align: center; margin-top: 0.5rem;"></div>
+  </div>
+  <div class="stat-box" id="selectionBox" style="display:none;">
+    <div class="stat-label">Sélection multiple (<span id="selectionCount">0</span> pts)</div>
+    <div class="stat-value" id="selectionSpadAvg">-</div>
+    <div class="stat-sub" id="selectionIndexAvg"></div>
+    <button type="button" id="clearSelectionBtn" style="margin-top:.4rem; font-size:.7rem; padding:.15rem .4rem;">Effacer la sélection</button>
+  </div>
+</div>
+<div class="scatter-row" id="boxplotRow" style="display:none; margin-top:1rem;">
+  <div class="chart-card" style="flex: 1;">
+    <canvas id="chartBoxSpad"></canvas>
+  </div>
+  <div class="chart-card" style="flex: 1;">
+    <canvas id="chartBoxIndex"></canvas>
+  </div>
+  <div class="chart-card" style="flex: 1;">
+    <canvas id="chartSpadNormal"></canvas>
+  </div>
+</div>
+
+<div class="scatter-row" id="timeScatterRow" style="display:none; margin-top:1rem;">
+  <div class="chart-card" style="flex: 1; max-width: 1100px;">
+    <canvas id="chartTimeScatter"></canvas>
+  </div>
+</div>
+
+<div id="pointInfo" style="display:none">
+  <strong>Détails du point sélectionné</strong>
+  <table class="stats" id="pointDetailsTable" style="max-width:500px; margin-top:.5rem;">
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="message" class="empty">Choisissez un site puis un nom.</div>
+
+<div class="grid" id="grid" style="display:none">
+  <div class="card">
+    <h2>Image RGB</h2>
+    <img id="img-rgb" alt="image rgb">
+  </div>
+  <div class="card">
+    <h2>Masque Combiné</h2>
+    <img id="img-mask-combined" alt="masque combiné">
+  </div>
+  <div class="card">
+    <h2>Carte d'indice (cliquable)</h2>
+    <select id="heatmapIndexSel">
+      <option value="rb_index">RB index = (R-B)/(R+B)</option>
+      <option value="br_bnir_index">(B-R)/(B+NIR)</option>
+      <option value="ci_green">CIgreen = NIR/G - 1</option>
+      <option value="nir_b_gb_index">(NIR-B)/(G-B)</option>
+      <option value="nir_gb_ratio_index">NIR/(G-B)</option>
+    </select>
+    <img id="img-index-heatmap" alt="carte indice" style="cursor:crosshair;">
+    <div id="pixelValueLabel" style="font-size:.85rem;opacity:.75;margin-top:.35rem;">Cliquez sur la carte pour lire la valeur d'un pixel.</div>
+  </div>
+  <div class="card">
+    <h2>Metadata (QPcard warped)</h2>
+    <img id="img-metadata" alt="metadata">
+  </div>
+  <div class="card">
+    <h2>Regression</h2>
+    <img id="img-regression" alt="regression">
+  </div>
+</div>
+
+<div id="statsSection" style="display:none">
+  <h2 class="section">Statistiques de l'image sélectionnée</h2>
+  <table class="stats" id="statsTable">
+    <thead>
+      <tr><th>SPAD</th><th>Pixels</th><th id="th-R">R</th><th id="th-G">G</th><th id="th-B">B</th><th id="th-NIR">NIR</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="lightbox">
+  <button type="button" class="lightbox-nav lightbox-prev" aria-label="Image précédente">‹</button>
+  <img id="lightboxImg" alt="">
+  <button type="button" class="lightbox-nav lightbox-next" aria-label="Image suivante">›</button>
+</div>
+
+<script>
+const ALL_SITES = {{ sites | tojson }};
+const siteSel = document.getElementById('site');
+const nameInput = document.getElementById('name');
+const nameList = document.getElementById('nameList');
+const scenarioSel = document.getElementById('scenario');
+const grid = document.getElementById('grid');
+const message = document.getElementById('message');
+const SITE_COLORS = {
+  'clermont-ferrand': '#1F77B4',
+  'greoux': '#2CA02C',
+  'mauguio': '#FF7F0E',
+  'toulouse': '#D62728',
+  'zurich/2026-03-23': '#9467BD',
+  'zurich/2026-04-07': '#8C564B',
+  'zurich/2026-04-21': '#E377C2',
+  'zurich/2026-05-05': '#7F7F7F',
+  'zurich/2026-06-01': '#17BECF'
+};
+const VARIETY_PALETTE = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c', '#1abc9c', '#34495e', '#d35400', '#2c3e50', '#27ae60', '#2980b9', '#8e44ad', '#f39c12', '#c0392b', '#16a085'];
+let varietyColorMap = {};
+
+function rebuildVarietyColorMap() {
+  const varieties = Array.from(new Set(scatterPoints.map(p => p.Variete || 'Inconnue')))
+    .filter(v => v && v !== 'nan' && v !== 'Inconnue')
+    .sort();
+  varietyColorMap = {};
+  varieties.forEach((v, i) => { varietyColorMap[v] = VARIETY_PALETTE[i % VARIETY_PALETTE.length]; });
+}
+
+function colorForSite(site) {
+  return SITE_COLORS[site] || '#7f8c8d';
+}
+
+function colorForVariety(variety) {
+  if (!variety || variety === 'Inconnue' || variety === 'nan') return '#7f8c8d';
+  return varietyColorMap[variety] || '#7f8c8d';
+}
+
+function colorForSiteCluster(site, clusterName) {
+  const baseColor = colorForSite(site);
+  if (!clusterName) return baseColor;
+  
+  let hex = baseColor.replace('#', '');
+  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  let r = parseInt(hex.substring(0, 2), 16) / 255;
+  let g = parseInt(hex.substring(2, 4), 16) / 255;
+  let b = parseInt(hex.substring(4, 6), 16) / 255;
+  
+  let max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0;
+  } else {
+    let d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  
+  h = Math.round(h * 360);
+  s = Math.round(s * 100);
+  l = Math.round(l * 100);
+  
+  if (clusterName.includes("Bas")) {
+    l = Math.min(85, l + 12);
+  } else if (clusterName.includes("Haut")) {
+    l = Math.max(15, l - 15);
+  } else if (clusterName.includes("Moyen")) {
+    // intermediate
+  } else if (clusterName.includes("Cluster 1")) {
+    l = Math.min(85, l + 15);
+  } else if (clusterName.includes("Cluster 2")) {
+    l = Math.max(15, l - 5);
+  } else if (clusterName.includes("Cluster 3")) {
+    l = Math.max(15, l - 20);
+  }
+  
+  return `hsl(${h}, ${s}%, ${l}%)`;
+}
+
+const RED_STOPS = [
+  [0.0,  [255, 215, 215]], // Rose corail très clair (faible intensité)
+  [0.35, [255, 110, 110]], // Rouge corail moyen
+  [0.70, [220, 25, 25]],   // Rouge vif éclatant
+  [1.0,  [110, 0, 10]]     // Rouge bordeaux très intense (forte intensité)
+];
+
+const BLUE_STOPS = [
+  [0.0,  [215, 235, 255]], // Bleu très clair
+  [0.35, [110, 180, 255]], // Bleu ciel vif
+  [0.70, [25, 105, 235]],  // Bleu roi
+  [1.0,  [5, 25, 115]]     // Bleu nuit profond
+];
+
+const GREEN_STOPS = [
+  [0.0,  [220, 255, 225]], // Vert menthe très clair
+  [0.35, [110, 225, 130]], // Vert prairie
+  [0.70, [25, 165, 55]],   // Vert émeraude
+  [1.0,  [5, 80, 20]]      // Vert forêt sombre
+];
+
+const NIR_PURPLE_STOPS = [
+  [0.0,  [245, 215, 255]], // Mauve très clair
+  [0.35, [205, 110, 255]], // Violet lumineux
+  [0.70, [150, 25, 210]],  // Violet pourpre
+  [1.0,  [75, 5, 115]]     // Indigo profond
+];
+
+const HEAT_STOPS = [
+  [0.0,  [255, 255, 180]], // Jaune pâle
+  [0.33, [255, 160, 30]],  // Orange chaud
+  [0.66, [225, 30, 30]],   // Rouge vif
+  [1.0,  [100, 0, 45]]     // Grenat foncé
+];
+
+function interpolateColorStops(t, stops) {
+  t = Math.max(0, Math.min(1, t));
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [t0, c0] = stops[i];
+    const [t1, c1] = stops[i + 1];
+    if (t >= t0 && t <= t1) {
+      const f = (t - t0) / (t1 - t0);
+      const r = Math.round(c0[0] + f * (c1[0] - c0[0]));
+      const g = Math.round(c0[1] + f * (c1[1] - c0[1]));
+      const b = Math.round(c0[2] + f * (c1[2] - c0[2]));
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+  }
+  const last = stops[stops.length - 1][1];
+  return `rgb(${last[0]}, ${last[1]}, ${last[2]})`;
+}
+
+function getTurboColor(t) {
+  t = Math.max(0, Math.min(1, t));
+  const r = Math.round(255 * Math.max(0, Math.min(1, 0.1357 + t * (4.5874 + t * (-42.3082 + t * (130.5870 + t * (-150.5668 + t * 58.1375)))))));
+  const g = Math.round(255 * Math.max(0, Math.min(1, 0.0914 + t * (2.1856 + t * (4.8052 + t * (-14.0195 + t * (4.2109 + t * 2.7747)))))));
+  const b = Math.round(255 * Math.max(0, Math.min(1, 0.1067 + t * (12.5732 + t * (-65.1111 + t * (163.7517 + t * (-203.1872 + t * 91.4650)))))));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function getStopsForPalette(palette, bandKey) {
+  if (palette === 'band') {
+    if (bandKey === 'intensite_mire_B') return BLUE_STOPS;
+    if (bandKey === 'intensite_mire_R') return RED_STOPS;
+    if (bandKey === 'intensite_mire_G') return GREEN_STOPS;
+    if (bandKey === 'intensite_mire_NIR') return NIR_PURPLE_STOPS;
+    return RED_STOPS;
+  }
+  if (palette === 'blue') return BLUE_STOPS;
+  if (palette === 'heat') return HEAT_STOPS;
+  return RED_STOPS;
+}
+
+function getMireColor(val, minVal, maxVal, palette = 'red', bandKey = 'intensite_mire_B') {
+  if (val === null || val === undefined || isNaN(val)) {
+    return 'rgba(160, 160, 160, 0.5)';
+  }
+  let t = (val - minVal) / ((maxVal - minVal) || 1);
+  t = Math.max(0, Math.min(1, t));
+  if (palette === 'turbo') {
+    return getTurboColor(t);
+  }
+  const stops = getStopsForPalette(palette, bandKey);
+  return interpolateColorStops(t, stops);
+}
+
+function getGradientCss(palette = 'red', bandKey = 'intensite_mire_B') {
+  if (palette === 'turbo') {
+    return 'linear-gradient(to right, rgb(48,18,59), rgb(70,134,251), rgb(27,229,181), rgb(164,252,60), rgb(251,185,56), rgb(227,68,10), rgb(122,4,3))';
+  }
+  const stops = getStopsForPalette(palette, bandKey);
+  const parts = stops.map(([t, c]) => `rgb(${c[0]}, ${c[1]}, ${c[2]}) ${Math.round(t * 100)}%`);
+  return `linear-gradient(to right, ${parts.join(', ')})`;
+}
+
+function setImg(id, url) {
+  const el = document.getElementById(id);
+  el.onerror = () => { el.removeAttribute('src'); el.alt = 'introuvable'; };
+  el.src = url;
+}
+
+// Lightbox: cliquer sur une image l'affiche en grand
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+const lightboxPrevBtn = lightbox.querySelector('.lightbox-prev');
+const lightboxNextBtn = lightbox.querySelector('.lightbox-next');
+let lightboxImages = [];
+let lightboxIndex = -1;
+document.addEventListener('click', (e) => {
+  if (e.target.tagName === 'IMG' && e.target.getAttribute('src') && e.target.closest('.card')) {
+    const src = e.target.getAttribute('src');
+    lightboxImages = [src];
+    lightboxIndex = 0;
+    lightboxImg.src = src;
+    lightbox.style.display = 'flex';
+  } else if (e.target === lightbox) {
+    lightbox.style.display = 'none';
+  }
+});
+
+function updateLightboxImage() {
+  if (!lightboxImages.length || lightboxIndex < 0) return;
+  lightboxIndex = (lightboxIndex + lightboxImages.length) % lightboxImages.length;
+  lightboxImg.src = lightboxImages[lightboxIndex];
+}
+
+function stepLightbox(delta) {
+  if (!lightboxImages.length) return;
+  lightboxIndex = (lightboxIndex + delta + lightboxImages.length) % lightboxImages.length;
+  updateLightboxImage();
+}
+
+lightboxPrevBtn.addEventListener('click', (e) => { e.stopPropagation(); stepLightbox(-1); });
+lightboxNextBtn.addEventListener('click', (e) => { e.stopPropagation(); stepLightbox(1); });
+document.addEventListener('keydown', (e) => {
+  if (lightbox.style.display !== 'flex') return;
+  if (e.key === 'Escape') lightbox.style.display = 'none';
+  if (e.key === 'ArrowLeft') stepLightbox(-1);
+  if (e.key === 'ArrowRight') stepLightbox(1);
+});
+
+async function loadNames(site, q, classFilter = 'all') {
+  const params = new URLSearchParams({ site });
+  if (q) params.set('q', q);
+  if (classFilter && classFilter !== 'all') params.set('class_filter', classFilter);
+  const res = await fetch(`/api/names?${params}`);
+  return res.json();
+}
+
+async function loadScenarios(site) {
+  const params = new URLSearchParams({ site });
+  const res = await fetch(`/api/scenarios?${params}`);
+  return res.json();
+}
+
+async function loadScenariosAll() {
+  const res = await fetch('/api/scenarios_all');
+  return res.json();
+}
+
+async function loadImageStats(site, name, statKey) {
+  const params = new URLSearchParams({ site, name, stat: statKey });
+  const res = await fetch(`/api/image_stats?${params}`);
+  return res.json();
+}
+
+async function loadScatter(sites, scenario, indexKey, statKey, excludeSpadOutliers, excludeIndexOutliers, zenithClusters = 0, classFilter = 'all') {
+  const params = new URLSearchParams({
+    sites: sites.join(','), scenario, index: indexKey, stat: statKey,
+    exclude_spad_outliers: excludeSpadOutliers ? '1' : '0',
+    exclude_index_outliers: excludeIndexOutliers ? '1' : '0',
+    zenith_clusters: zenithClusters,
+    class_filter: classFilter,
+  });
+  const res = await fetch(`/api/scatter?${params}`);
+  return res.json();
+}
+
+async function loadSpadDistribution(sites, scenario, classFilter = 'all') {
+  const params = new URLSearchParams({ sites: sites.join(','), scenario, class_filter: classFilter });
+  const res = await fetch(`/api/spad_distribution?${params}`);
+  return res.json();
+}
+
+async function loadIndices() {
+  const res = await fetch('/api/indices');
+  return res.json();
+}
+
+async function loadStatsOptions() {
+  const res = await fetch('/api/stats_options');
+  return res.json();
+}
+
+// ---- Statistiques (texte) par scenario pour l'image sélectionnée ----
+const statsSection = document.getElementById('statsSection');
+const statsTableBody = document.querySelector('#statsTable tbody');
+
+function round(v, d = 2) {
+  return v === null || v === undefined ? '-' : Number(v).toFixed(d);
+}
+
+function timeStrToDecimal(timeStr) {
+  if (!timeStr) return null;
+  const parts = timeStr.split(':');
+  if (parts.length >= 2) {
+    return parseInt(parts[0], 10) + parseInt(parts[1], 10) / 60.0;
+  }
+  return null;
+}
+
+function colorForSpad(spadVal, minSpad, maxSpad) {
+  if (spadVal === null || spadVal === undefined || isNaN(spadVal)) return '#7f8c8d';
+  let t = 0;
+  if (maxSpad > minSpad) {
+    t = (spadVal - minSpad) / (maxSpad - minSpad);
+  }
+  t = Math.max(0, Math.min(1, t));
+  const h = Math.round(85 + t * 50);
+  const l = Math.round(75 - t * 45);
+  return `hsl(${h}, 85%, ${l}%)`;
+}
+
+function pointKey(p) {
+  return `${p.Site}::${p.name}`;
+}
+
+function pearsonR(xs, ys) {
+  const n = xs.length;
+  if (n < 2) return null;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0, dx2 = 0, dy2 = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - mx, dy = ys[i] - my;
+    num += dx * dy; dx2 += dx * dx; dy2 += dy * dy;
+  }
+  const denom = Math.sqrt(dx2 * dy2);
+  return denom === 0 ? null : num / denom;
+}
+
+function rankArray(arr) {
+  const idx = arr.map((v, i) => i).sort((a, b) => arr[a] - arr[b]);
+  const ranks = new Array(arr.length);
+  let i = 0;
+  while (i < idx.length) {
+    let j = i;
+    while (j + 1 < idx.length && arr[idx[j + 1]] === arr[idx[i]]) j++;
+    const rank = (i + j) / 2 + 1;
+    for (let k = i; k <= j; k++) ranks[idx[k]] = rank;
+    i = j + 1;
+  }
+  return ranks;
+}
+
+function spearmanRho(xs, ys) {
+  if (xs.length < 2) return null;
+  return pearsonR(rankArray(xs), rankArray(ys));
+}
+
+async function refreshStats() {
+  const site = siteSel.value;
+  const name = nameInput.value.trim();
+  const statKey = statSel.value || 'median';
+  if (!site || !name) {
+    statsSection.style.display = 'none';
+    pointInfo.style.display = 'none';
+    return;
+  }
+  const rows = await loadImageStats(site, name, statKey);
+  if (!rows.length) {
+    statsSection.style.display = 'none';
+    pointInfo.style.display = 'none';
+    return;
+  }
+  statsSection.style.display = 'block';
+
+  const statLabel = statSel.options[statSel.selectedIndex]?.textContent || '';
+  ['R', 'G', 'B', 'NIR'].forEach(k => {
+    document.getElementById(`th-${k}`).textContent = `${k} (${statLabel})`;
+  });
+
+  statsTableBody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${round(r.spad_mean, 1)}</td>
+      <td>${r.Nb_pixels ?? '-'}</td>
+      <td>${round(r.stat_R)}</td>
+      <td>${round(r.stat_G)}</td>
+      <td>${round(r.stat_B)}</td>
+      <td>${round(r.stat_NIR)}</td>
+    </tr>
+  `).join('');
+}
+
+async function showSearchImageDetails() {
+  const site = siteSel.value;
+  const name = nameInput.value.trim();
+  const scenario = scenarioSel.value;
+  const statKey = statSel.value || 'median';
+  if (!site || !name) {
+    pointInfo.style.display = 'none';
+    return;
+  }
+  const rows = await loadImageStats(site, name, statKey);
+  if (!rows.length) {
+    pointInfo.style.display = 'none';
+    return;
+  }
+  const statLabel = statSel.options[statSel.selectedIndex]?.textContent || '';
+  const primary = rows.find(r => r.Scenario === scenario) || rows[0];
+  const rowsHtml = [
+    ['Site', site],
+    ['Nom', name],
+    ...(primary?.class !== null && primary?.class !== undefined ? [['Classe', primary.class]] : []),
+    ['Scenario', primary?.Scenario || '-'],
+    ['SPAD (moyenne)', round(primary?.spad_mean, 1)],
+    [`R (${statLabel})`, round(primary?.stat_R)],
+    [`G (${statLabel})`, round(primary?.stat_G)],
+    [`B (${statLabel})`, round(primary?.stat_B)],
+    [`NIR (${statLabel})`, round(primary?.stat_NIR)],
+    ['Pixel %', round(primary?.Pixel_percentage, 1)],
+  ];
+  pointDetailsBody.innerHTML = rowsHtml.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+  pointInfo.style.display = 'block';
+}
+
+// ---- Scatter SPAD vs indice, interactif ----
+const scatterMessage = document.getElementById('scatterMessage');
+const scatterRow = document.getElementById('scatterRow');
+const siteChecksEl = document.getElementById('siteChecks');
+const scatterScenarioSel = document.getElementById('scatterScenarioSel');
+const indexSel = document.getElementById('indexSel');
+const statSel = document.getElementById('statSel');
+const xAxisSel = document.getElementById('xAxisSel');
+const corrN = document.getElementById('corrN');
+const pointInfo = document.getElementById('pointInfo');
+const pointDetailsBody = document.querySelector('#pointDetailsTable tbody');
+const excludeIndexOutliersChk = document.getElementById('excludeIndexOutliers');
+const excludeSpadOutliersChk = document.getElementById('excludeSpadOutliers');
+const showSolarZenithValChk = document.getElementById('showSolarZenithVal');
+const classFilterSel = document.getElementById('classFilterSel');
+const searchClassFilter = document.getElementById('searchClassFilter');
+const groupByClassField = document.getElementById('groupByClassField');
+const groupByClassChk = document.getElementById('groupByClass');
+const groupByVarietyField = document.getElementById('groupByVarietyField');
+const groupByVarietyChk = document.getElementById('groupByVariety');
+const varietyFiltersField = document.getElementById('varietyFiltersField');
+const varietyChecksEl = document.getElementById('varietyChecks');
+const varietySelectAllBtn = document.getElementById('varietySelectAll');
+const varietySelectNoneBtn = document.getElementById('varietySelectNone');
+const exportCsvBtn = document.getElementById('exportCsvBtn');
+const mireColorSel = document.getElementById('mireColorSel');
+const mirePaletteSel = document.getElementById('mirePaletteSel');
+const boxplotRow = document.getElementById('boxplotRow');
+let chartScatter;
+let chartBoxSpad;
+let chartBoxIndex;
+let chartSpadNormal;
+let chartTimeScatter;
+let scatterPoints = [];
+let pointsByDataset = [];
+let excludedKeys = new Set();
+let multiSelectedKeys = new Set();
+let highlightedPointKey = '';
+let currentSites = [];
+let currentScenario = '';
+let currentIndexLabel = '';
+let currentXAxisVar = 'spad_mean';
+const X_AXIS_LABELS = {
+  'spad_mean': 'Moyenne (SPAD)',
+  'Feuille_1': 'Feuille 1',
+  'Feuille_2': 'Feuille 2',
+  'Feuille_3': 'Feuille 3',
+  'F1_F2': 'Moyenne F1+F2'
+};
+const selectionBox = document.getElementById('selectionBox');
+const selectionCount = document.getElementById('selectionCount');
+const selectionSpadAvg = document.getElementById('selectionSpadAvg');
+const selectionIndexAvg = document.getElementById('selectionIndexAvg');
+
+async function initIndices() {
+  const indices = await loadIndices();
+  indexSel.innerHTML = indices.map(i => `<option value="${i.key}" data-custom="${i.custom}">${i.label}</option>`).join('');
+  updateDeleteBtnVisibility();
+}
+
+function updateDeleteBtnVisibility() {
+  const selectedOpt = indexSel.options[indexSel.selectedIndex];
+  const isCustom = selectedOpt?.dataset.custom === 'true';
+  document.getElementById('deleteIndexBtn').style.display = isCustom ? 'inline-block' : 'none';
+}
+
+async function initStatsOptions() {
+  const options = await loadStatsOptions();
+  statSel.innerHTML = options.map(o => `<option value="${o.key}">${o.label}</option>`).join('');
+  statSel.value = 'median';
+}
+
+function initSiteChecks() {
+  siteChecksEl.innerHTML = ALL_SITES.map(s => `
+    <label style="display:flex; align-items:center; gap:.35rem; font-size:.85rem; min-width:unset;">
+      <input type="checkbox" class="siteCheck" value="${s}" checked style="min-width:unset; width:auto;">
+      <span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:${colorForSite(s)};"></span>
+      ${s}
+    </label>
+  `).join('');
+  siteChecksEl.querySelectorAll('.siteCheck').forEach(chk => chk.addEventListener('change', refreshScatter));
+}
+
+function checkedSites() {
+  return Array.from(siteChecksEl.querySelectorAll('.siteCheck:checked')).map(chk => chk.value);
+}
+
+function updateVarietyFilters() {
+  const groupVariety = groupByVarietyChk && groupByVarietyChk.checked;
+  const hasVariety = scatterPoints.some(p => p.Variete && p.Variete !== 'nan');
+
+  if (groupVariety && hasVariety) {
+    varietyFiltersField.style.display = 'flex';
+    const varieties = Array.from(new Set(scatterPoints.map(p => p.Variete || 'Inconnue'))).filter(v => v !== 'nan').sort();
+    
+    const existingChecked = new Set(
+      Array.from(varietyChecksEl.querySelectorAll('input:checked')).map(chk => chk.value)
+    );
+    const hadChecks = varietyChecksEl.querySelectorAll('input').length > 0;
+
+    varietyChecksEl.innerHTML = varieties.map(v => {
+      const isChecked = !hadChecks || existingChecked.has(v);
+      const color = colorForVariety(v);
+      return `
+        <label style="display:flex; align-items:center; gap:.3rem; font-size:.85rem; min-width:unset;">
+          <input type="checkbox" class="varietyCheck" value="${v}" ${isChecked ? 'checked' : ''} style="min-width:unset; width:auto;">
+          <span style="display:inline-block; width:.7rem; height:.7rem; border-radius:50%; background:${color};"></span>
+          ${v}
+        </label>
+      `;
+    }).join('');
+
+    varietyChecksEl.querySelectorAll('.varietyCheck').forEach(chk => {
+      chk.addEventListener('change', renderScatterVisuals);
+    });
+  } else {
+    varietyFiltersField.style.display = 'none';
+  }
+}
+
+if (varietySelectAllBtn) {
+  varietySelectAllBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    varietyChecksEl.querySelectorAll('.varietyCheck').forEach(chk => { chk.checked = true; });
+    renderScatterVisuals();
+  });
+}
+if (varietySelectNoneBtn) {
+  varietySelectNoneBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    varietyChecksEl.querySelectorAll('.varietyCheck').forEach(chk => { chk.checked = false; });
+    renderScatterVisuals();
+  });
+}
+
+async function initScatterScenario() {
+  const scenarios = await loadScenariosAll();
+  scatterScenarioSel.innerHTML = scenarios.map(s => `<option value="${s}">${s}</option>`).join('');
+  const preferred = 'Vegetation-no-specular-no-shadow-no-epi-no-tige';
+  if (scenarios.includes(preferred)) scatterScenarioSel.value = preferred;
+}
+
+async function refreshScatter() {
+  const sites = checkedSites();
+  const scenario = scatterScenarioSel.value;
+  const indexKey = indexSel.value;
+  const statKey = statSel.value || 'median';
+  const excludeSpad = excludeSpadOutliersChk.checked;
+  const excludeIndex = excludeIndexOutliersChk.checked;
+  if (!sites.length || !scenario) {
+    scatterRow.style.display = 'none';
+    boxplotRow.style.display = 'none';
+    document.getElementById('timeScatterRow').style.display = 'none';
+    scatterMessage.style.display = 'block';
+    scatterMessage.textContent = 'Choisissez au moins un site et un scenario pour afficher le nuage de points.';
+    exportCsvBtn.disabled = true;
+    return;
+  }
+  const zenithClusters = document.getElementById('zenithClusterSel')?.value || '0';
+  const classFilter = classFilterSel ? classFilterSel.value : 'all';
+  const data = await loadScatter(sites, scenario, indexKey, statKey, excludeSpad, excludeIndex, zenithClusters, classFilter);
+  scatterPoints = data.points;
+
+  // Check if Leaf data exists for the selected sites/scenarios
+  const hasLeafData = scatterPoints.some(p => p.Feuille_1 !== null && p.Feuille_1 !== undefined && !isNaN(p.Feuille_1));
+  const leafOptions = ['Feuille_1', 'Feuille_2', 'Feuille_3', 'F1_F2'];
+  if (xAxisSel) {
+    xAxisSel.querySelectorAll('option').forEach(opt => {
+      if (leafOptions.includes(opt.value)) {
+        if (hasLeafData) {
+          opt.disabled = false;
+          opt.style.display = '';
+        } else {
+          opt.disabled = true;
+          opt.style.display = 'none';
+        }
+      }
+    });
+    if (!hasLeafData && leafOptions.includes(currentXAxisVar)) {
+      currentXAxisVar = 'spad_mean';
+      xAxisSel.value = 'spad_mean';
+    }
+  }
+  leafOptions.forEach(opt => {
+    const rowEl = document.getElementById(`row-${opt}`);
+    if (rowEl) {
+      rowEl.style.opacity = hasLeafData ? '1' : '0.4';
+    }
+  });
+
+  rebuildVarietyColorMap();
+  excludedKeys.clear();
+  multiSelectedKeys.clear();
+  syncHighlightedPointFromSelection();
+
+  const hasClassData = scatterPoints.some(p => p.class !== null && p.class !== undefined);
+  if (groupByClassField) {
+    groupByClassField.style.display = hasClassData ? 'block' : 'none';
+    if (!hasClassData) {
+      groupByClassChk.checked = false;
+    }
+  }
+
+  const hasVariety = scatterPoints.some(p => p.Variete && p.Variete !== 'nan');
+  if (groupByVarietyField) {
+    groupByVarietyField.style.display = hasVariety ? 'block' : 'none';
+    if (!hasVariety) {
+      groupByVarietyChk.checked = false;
+    }
+  }
+  updateVarietyFilters();
+  if (!scatterPoints.length) {
+    scatterRow.style.display = 'none';
+    boxplotRow.style.display = 'none';
+    document.getElementById('timeScatterRow').style.display = 'none';
+    scatterMessage.style.display = 'block';
+    scatterMessage.textContent = `Aucune donnée SPAD/indice pour ${sites.join(', ')} / ${scenario}.`;
+    exportCsvBtn.disabled = true;
+    return;
+  }
+  exportCsvBtn.disabled = false;
+  exportCsvBtn.onclick = () => {
+    const classFilter = classFilterSel ? classFilterSel.value : 'all';
+    const params = new URLSearchParams({
+      sites: sites.join(','), scenario, index: indexKey, stat: statKey,
+      exclude_spad_outliers: excludeSpad ? '1' : '0',
+      exclude_index_outliers: excludeIndex ? '1' : '0',
+      zenith_clusters: zenithClusters,
+      class_filter: classFilter,
+    });
+    window.location.href = `/api/scatter/export?${params}`;
+  };
+  scatterMessage.style.display = 'none';
+  scatterRow.style.display = 'flex';
+  boxplotRow.style.display = 'flex';
+  document.getElementById('timeScatterRow').style.display = 'flex';
+
+  currentSites = sites;
+  currentScenario = scenario;
+  currentIndexLabel = data.label;
+
+  const orderedSites = renderScatterVisuals();
+  refreshSpadNormal(orderedSites, scenario, classFilter);
+}
+
+function renderScatterVisuals() {
+  const groupClass = groupByClassChk && groupByClassChk.checked;
+  const groupVariety = !groupClass && groupByVarietyChk && groupByVarietyChk.checked;
+  const activeVarieties = groupVariety ? Array.from(varietyChecksEl.querySelectorAll('.varietyCheck:checked')).map(chk => chk.value) : [];
+
+  const visiblePoints = scatterPoints.filter(p => {
+    if (excludedKeys.has(pointKey(p))) return false;
+    if (groupVariety) {
+      const v = p.Variete || 'Inconnue';
+      return activeVarieties.includes(v);
+    }
+    return true;
+  });
+  const highlightedPoint = visiblePoints.find(p => pointKey(p) === highlightedPointKey);
+
+  const currentXAxisLabel = X_AXIS_LABELS[currentXAxisVar] || 'SPAD';
+  const excludedNote = excludedKeys.size ? ` (${excludedKeys.size} exclu(s))` : '';
+  if (!visiblePoints.length) {
+    if (chartScatter) { chartScatter.destroy(); chartScatter = null; }
+    document.querySelectorAll('#correlationsTable tbody td.r-val, #correlationsTable tbody td.rho-val').forEach(td => td.textContent = '-');
+    corrN.textContent = `n = 0${excludedNote}`;
+    selectionBox.style.display = 'none';
+    return [];
+  }
+
+  // Calculer en temps réel les corrélations pour les 4 variables
+  const varsToCompute = [
+    { key: 'spad_mean', rowId: 'row-spad_mean' },
+    { key: 'Feuille_1', rowId: 'row-Feuille_1' },
+    { key: 'Feuille_2', rowId: 'row-Feuille_2' },
+    { key: 'Feuille_3', rowId: 'row-Feuille_3' },
+    { key: 'F1_F2', rowId: 'row-F1_F2' }
+  ];
+  varsToCompute.forEach(v => {
+    const rowEl = document.getElementById(v.rowId);
+    if (!rowEl) return;
+    const pts = visiblePoints.filter(p => p[v.key] !== null && p[v.key] !== undefined && !isNaN(p[v.key]));
+    if (pts.length >= 2) {
+      const xs = pts.map(p => p[v.key]);
+      const ys = pts.map(p => p.value);
+      const r = pearsonR(xs, ys);
+      const rho = spearmanRho(xs, ys);
+      rowEl.querySelector('.r-val').textContent = r === null ? '-' : round(r, 3);
+      rowEl.querySelector('.rho-val').textContent = rho === null ? '-' : round(rho, 3);
+    } else {
+      rowEl.querySelector('.r-val').textContent = '-';
+      rowEl.querySelector('.rho-val').textContent = '-';
+    }
+  });
+  corrN.textContent = `n = ${visiblePoints.length}${excludedNote}`;
+
+  const orderedSites = ALL_SITES.filter(s => currentSites.includes(s) && visiblePoints.some(p => p.Site === s));
+  let orderedGroups, perGroupData, siteDatasets;
+  const isClustering = document.getElementById('zenithClusterSel')?.value !== '0';
+
+  const useZenithLabels = showSolarZenithValChk && showSolarZenithValChk.checked;
+
+  const mireBand = (mireColorSel && mireColorSel.value) ? mireColorSel.value : 'none';
+  const mirePalette = (mirePaletteSel && mirePaletteSel.value) ? mirePaletteSel.value : 'red';
+  const isMireColoring = mireBand !== 'none';
+  let mireMin = Infinity, mireMax = -Infinity;
+  if (isMireColoring) {
+    visiblePoints.forEach(p => {
+      const v = p[mireBand];
+      if (v !== null && v !== undefined && !isNaN(v)) {
+        if (v < mireMin) mireMin = v;
+        if (v > mireMax) mireMax = v;
+      }
+    });
+    if (mireMin === Infinity) { mireMin = 0; mireMax = 1; }
+    const colorbarWrap = document.getElementById('mireColorbarWrap');
+    if (colorbarWrap) {
+      colorbarWrap.style.display = 'block';
+      const bandTitles = {
+        'intensite_mire_R': 'Intensité Mire Rouge (R)',
+        'intensite_mire_G': 'Intensité Mire Vert (G)',
+        'intensite_mire_B': 'Intensité Mire Bleu (B)',
+        'intensite_mire_NIR': 'Intensité Mire NIR',
+      };
+      const paletteNames = {
+        'red': 'Dégradé Rouge',
+        'band': 'Couleur selon bande',
+        'blue': 'Dégradé Bleu',
+        'heat': 'Dégradé Chaleur',
+        'turbo': 'Spectre Turbo',
+      };
+      const palTitle = paletteNames[mirePalette] || 'Dégradé';
+      document.getElementById('mireColorbarTitle').textContent = `${palTitle} selon ${bandTitles[mireBand] || mireBand} (DN/s)`;
+      const subEl = document.getElementById('mireColorbarSub');
+      if (subEl) {
+        subEl.textContent = mirePalette === 'red'
+          ? 'Faible (rose corail clair) \u2192 Forte intensité (rouge bordeaux)'
+          : (mirePalette === 'blue' ? 'Faible (bleu clair) \u2192 Forte intensité (bleu nuit)' : 'Faible \u2192 Forte intensité');
+      }
+      const gradEl = document.getElementById('mireColorbarGradient');
+      if (gradEl) {
+        gradEl.style.background = getGradientCss(mirePalette, mireBand);
+      }
+      document.getElementById('mireColorMinVal').textContent = `Min : ${round(mireMin, 1)} DN/s`;
+      document.getElementById('mireColorMidVal').textContent = `Médiane : ${round((mireMin + mireMax) / 2, 1)} DN/s`;
+      document.getElementById('mireColorMaxVal').textContent = `Max : ${round(mireMax, 1)} DN/s`;
+    }
+  } else {
+    const colorbarWrap = document.getElementById('mireColorbarWrap');
+    if (colorbarWrap) colorbarWrap.style.display = 'none';
+  }
+
+  const pointBorderColor = isMireColoring
+    ? (mirePalette === 'red' ? 'rgba(95, 10, 15, 0.85)'
+       : mirePalette === 'blue' ? 'rgba(5, 25, 95, 0.85)'
+       : mirePalette === 'heat' ? 'rgba(90, 5, 20, 0.85)'
+       : mirePalette === 'turbo' ? 'rgba(0, 0, 0, 0.55)'
+       : 'rgba(50, 50, 50, 0.8)')
+    : null;
+
+  const getPointColor = (p, fallbackColor) => {
+    if (isMireColoring) {
+      const v = p[mireBand];
+      return getMireColor(v, mireMin, mireMax, mirePalette, mireBand);
+    }
+    return fallbackColor;
+  };
+
+  if (groupClass) {
+    const classGroups = Array.from(new Set(visiblePoints.map(p => (p.class !== null && p.class !== undefined) ? p.class : 'Inconnue'))).sort();
+    orderedGroups = classGroups;
+    perGroupData = classGroups.map(c => visiblePoints.filter(p => (p.class !== null && p.class !== undefined ? p.class : 'Inconnue') === c));
+    siteDatasets = classGroups.map((c, i) => {
+      const cColor = c === 0 ? '#1F77B4' : (c === 1 ? '#FF7F0E' : '#7f8c8d');
+      const pointColors = isMireColoring ? perGroupData[i].map(p => getPointColor(p, cColor)) : cColor;
+      return {
+        label: `Classe ${c}`,
+        data: perGroupData[i].map(p => ({ x: p[currentXAxisVar], y: p.value })),
+        backgroundColor: pointColors,
+        borderColor: isMireColoring ? pointBorderColor : cColor,
+        borderWidth: isMireColoring ? 1.2 : 0,
+        pointRadius: useZenithLabels ? 12 : 5,
+        hoverRadius: useZenithLabels ? 14 : 7,
+        pointStyle: (ctx) => {
+          if (!useZenithLabels) return 'circle';
+          const p = perGroupData[i][ctx.dataIndex];
+          if (!p || p.solar_zenith === null || p.solar_zenith === undefined) return 'circle';
+          const val = round(p.solar_zenith, 0).toString();
+          const color = isMireColoring ? getPointColor(p, cColor) : cColor;
+          const cacheKey = `zenith-${val}-${color}`;
+          if (!window._zenithStyleCache) window._zenithStyleCache = {};
+          if (window._zenithStyleCache[cacheKey]) return window._zenithStyleCache[cacheKey];
+          const canvas = document.createElement('canvas');
+          canvas.width = 28;
+          canvas.height = 16;
+          const ctx2d = canvas.getContext('2d');
+          ctx2d.fillStyle = color;
+          ctx2d.font = 'bold 10px sans-serif';
+          ctx2d.textAlign = 'center';
+          ctx2d.textBaseline = 'middle';
+          ctx2d.fillText(val, 14, 8);
+          window._zenithStyleCache[cacheKey] = canvas;
+          return canvas;
+        }
+      };
+    });
+  } else if (groupVariety) {
+    const varieties = Array.from(new Set(visiblePoints.map(p => p.Variete || 'Inconnue'))).filter(v => v !== 'nan').sort();
+    orderedGroups = varieties;
+    perGroupData = varieties.map(v => visiblePoints.filter(p => (p.Variete || 'Inconnue') === v));
+    siteDatasets = varieties.map((v, i) => {
+      const vColor = colorForVariety(v);
+      const pointColors = isMireColoring ? perGroupData[i].map(p => getPointColor(p, vColor)) : vColor;
+      return {
+        label: v,
+        data: perGroupData[i].map(p => ({ x: p[currentXAxisVar], y: p.value })),
+        backgroundColor: pointColors,
+        borderColor: isMireColoring ? pointBorderColor : vColor,
+        borderWidth: isMireColoring ? 1.2 : 0,
+        pointRadius: useZenithLabels ? 12 : 5,
+        hoverRadius: useZenithLabels ? 14 : 7,
+        pointStyle: (ctx) => {
+          if (!useZenithLabels) return 'circle';
+          const p = perGroupData[i][ctx.dataIndex];
+          if (!p || p.solar_zenith === null || p.solar_zenith === undefined) return 'circle';
+          const val = round(p.solar_zenith, 0).toString();
+          const color = isMireColoring ? getPointColor(p, vColor) : vColor;
+          const cacheKey = `zenith-${val}-${color}`;
+          if (!window._zenithStyleCache) window._zenithStyleCache = {};
+          if (window._zenithStyleCache[cacheKey]) return window._zenithStyleCache[cacheKey];
+          const canvas = document.createElement('canvas');
+          canvas.width = 28;
+          canvas.height = 16;
+          const ctx2d = canvas.getContext('2d');
+          ctx2d.fillStyle = color;
+          ctx2d.font = 'bold 10px sans-serif';
+          ctx2d.textAlign = 'center';
+          ctx2d.textBaseline = 'middle';
+          ctx2d.fillText(val, 14, 8);
+          window._zenithStyleCache[cacheKey] = canvas;
+          return canvas;
+        }
+      };
+    });
+  } else if (isClustering) {
+    const combos = [];
+    visiblePoints.forEach(p => {
+      const cluster = p.zenith_cluster || "Zenith N/A";
+      const key = `${p.Site}::${cluster}`;
+      if (!combos.includes(key)) {
+        combos.push(key);
+      }
+    });
+    combos.sort();
+    orderedGroups = combos;
+    perGroupData = combos.map(key => {
+      const [site, cluster] = key.split("::");
+      return visiblePoints.filter(p => p.Site === site && (p.zenith_cluster || "Zenith N/A") === cluster);
+    });
+    siteDatasets = combos.map((key, i) => {
+      const [site, cluster] = key.split("::");
+      const color = colorForSiteCluster(site, cluster);
+      const pointColors = isMireColoring ? perGroupData[i].map(p => getPointColor(p, color)) : color;
+      return {
+        label: `${site} (${cluster})`,
+        data: perGroupData[i].map(p => ({ x: p[currentXAxisVar], y: p.value })),
+        backgroundColor: pointColors,
+        borderColor: isMireColoring ? pointBorderColor : color,
+        borderWidth: isMireColoring ? 1.2 : 0,
+        pointRadius: useZenithLabels ? 12 : 5,
+        hoverRadius: useZenithLabels ? 14 : 7,
+        pointStyle: (ctx) => {
+          if (!useZenithLabels) return 'circle';
+          const p = perGroupData[i][ctx.dataIndex];
+          if (!p || p.solar_zenith === null || p.solar_zenith === undefined) return 'circle';
+          const val = round(p.solar_zenith, 0).toString();
+          const color = isMireColoring ? getPointColor(p, color) : color;
+          const cacheKey = `zenith-${val}-${color}`;
+          if (!window._zenithStyleCache) window._zenithStyleCache = {};
+          if (window._zenithStyleCache[cacheKey]) return window._zenithStyleCache[cacheKey];
+          const canvas = document.createElement('canvas');
+          canvas.width = 28;
+          canvas.height = 16;
+          const ctx2d = canvas.getContext('2d');
+          ctx2d.fillStyle = color;
+          ctx2d.font = 'bold 10px sans-serif';
+          ctx2d.textAlign = 'center';
+          ctx2d.textBaseline = 'middle';
+          ctx2d.fillText(val, 14, 8);
+          window._zenithStyleCache[cacheKey] = canvas;
+          return canvas;
+        }
+      };
+    });
+  } else {
+    orderedGroups = orderedSites;
+    perGroupData = orderedSites.map(s => visiblePoints.filter(p => p.Site === s));
+    siteDatasets = orderedSites.map((s, i) => {
+      const sColor = colorForSite(s);
+      const pointColors = isMireColoring ? perGroupData[i].map(p => getPointColor(p, sColor)) : sColor;
+      return {
+        label: s,
+        data: perGroupData[i].map(p => ({ x: p[currentXAxisVar], y: p.value })),
+        backgroundColor: pointColors,
+        borderColor: isMireColoring ? pointBorderColor : sColor,
+        borderWidth: isMireColoring ? 1.2 : 0,
+        pointRadius: useZenithLabels ? 12 : 5,
+        hoverRadius: useZenithLabels ? 14 : 7,
+        pointStyle: (ctx) => {
+          if (!useZenithLabels) return 'circle';
+          const p = perGroupData[i][ctx.dataIndex];
+          if (!p || p.solar_zenith === null || p.solar_zenith === undefined) return 'circle';
+          const val = round(p.solar_zenith, 0).toString();
+          const color = isMireColoring ? getPointColor(p, sColor) : sColor;
+          const cacheKey = `zenith-${val}-${color}`;
+          if (!window._zenithStyleCache) window._zenithStyleCache = {};
+          if (window._zenithStyleCache[cacheKey]) return window._zenithStyleCache[cacheKey];
+          const canvas = document.createElement('canvas');
+          canvas.width = 28;
+          canvas.height = 16;
+          const ctx2d = canvas.getContext('2d');
+          ctx2d.fillStyle = color;
+          ctx2d.font = 'bold 10px sans-serif';
+          ctx2d.textAlign = 'center';
+          ctx2d.textBaseline = 'middle';
+          ctx2d.fillText(val, 14, 8);
+          window._zenithStyleCache[cacheKey] = canvas;
+          return canvas;
+        }
+      };
+    });
+  }
+
+  const minPoint = visiblePoints.reduce((a, b) => (b[currentXAxisVar] < a[currentXAxisVar] ? b : a));
+  const maxPoint = visiblePoints.reduce((a, b) => (b[currentXAxisVar] > a[currentXAxisVar] ? b : a));
+  const extremePoints = [minPoint, maxPoint];
+  const minMaxDataset = {
+    label: `${currentXAxisLabel} min/max`,
+    data: extremePoints.map(p => ({ x: p[currentXAxisVar], y: p.value })),
+    backgroundColor: '#2ecc71',
+    borderColor: '#1a7f3c',
+    borderWidth: 2,
+    pointRadius: 7,
+    pointStyle: 'rectRot',
+  };
+  const minMaxDatasetIndex = siteDatasets.length;
+
+  const selectedPoints = visiblePoints.filter(p => multiSelectedKeys.has(pointKey(p)));
+  if (selectedPoints.length) {
+    const avgSpad = selectedPoints.reduce((a, p) => a + p[currentXAxisVar], 0) / selectedPoints.length;
+    const avgIndex = selectedPoints.reduce((a, p) => a + p.value, 0) / selectedPoints.length;
+    selectionBox.style.display = 'flex';
+    selectionCount.textContent = selectedPoints.length;
+    selectionSpadAvg.textContent = round(avgSpad, 2);
+    selectionIndexAvg.textContent = `indice moyen = ${round(avgIndex, 3)}`;
+  } else {
+    selectionBox.style.display = 'none';
+  }
+  const selectionDataset = {
+    label: 'Sélection',
+    data: selectedPoints.map(p => ({ x: p[currentXAxisVar], y: p.value })),
+    backgroundColor: 'rgba(0,0,0,0)',
+    borderColor: '#000000',
+    borderWidth: 3,
+    pointRadius: 9,
+  };
+  const highlightDataset = highlightedPoint ? {
+    label: 'Image sélectionnée',
+    data: [{ x: highlightedPoint[currentXAxisVar], y: highlightedPoint.value }],
+    backgroundColor: '#ff6b00',
+    borderColor: '#8a2be2',
+    borderWidth: 3,
+    pointRadius: 8,
+    pointStyle: 'rectRot',
+  } : null;
+
+  const allDatasets = [...siteDatasets, minMaxDataset];
+  const pointGroups = [...perGroupData, extremePoints];
+  let highlightDatasetIndex = -1;
+  if (highlightDataset) {
+    allDatasets.push(highlightDataset);
+    pointGroups.push([highlightedPoint]);
+    highlightDatasetIndex = allDatasets.length - 1;
+  }
+  if (selectedPoints.length) {
+    allDatasets.push(selectionDataset);
+    pointGroups.push(selectedPoints);
+  }
+  pointsByDataset = pointGroups;
+
+  if (chartScatter) chartScatter.destroy();
+  chartScatter = new Chart(document.getElementById('chartScatter'), {
+    type: 'scatter',
+    data: { datasets: allDatasets },
+    options: {
+      responsive: true,
+      onClick: (evt, elements) => {
+        if (!elements.length) return;
+        const el = elements[0];
+        selectScatterPoint(pointsByDataset[el.datasetIndex][el.index]);
+      },
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: `${currentXAxisLabel} vs ${currentIndexLabel}` },
+        tooltip: {
+          callbacks: {
+            title: () => '',
+            label: (ctx) => {
+              const p = pointsByDataset[ctx.datasetIndex][ctx.dataIndex];
+              const flags = [];
+              if (ctx.datasetIndex === minMaxDatasetIndex) flags.push(p === minPoint ? 'min' : 'max');
+              if (highlightDataset && ctx.datasetIndex === highlightDatasetIndex) flags.push('image sélectionnée');
+              if (selectedPoints.length && ctx.datasetIndex === allDatasets.length - 1) flags.push('sélectionné');
+              const flag = flags.length ? ` [${flags.join(', ')}]` : '';
+              const classStr = (p.class !== null && p.class !== undefined) ? ` [class=${p.class}]` : '';
+              const varietyStr = p.Variete ? ` (${p.Variete})` : '';
+              const timeStr = p.time_hm ? ` @ ${p.time_hm}` : '';
+              const zenithStr = (p.solar_zenith !== null && p.solar_zenith !== undefined) ? `, Zenith=${round(p.solar_zenith, 1)}°` : '';
+              const hasLeaf = p.Feuille_1 !== null && p.Feuille_1 !== undefined && !isNaN(p.Feuille_1);
+              const leafDetails = hasLeaf ? ` (F1=${round(p.Feuille_1, 1)}, F2=${round(p.Feuille_2, 1)}, F3=${round(p.Feuille_3, 1)}, F1+F2=${round(p.F1_F2, 1)})` : '';
+              let mireStr = '';
+              if (isMireColoring && p && p[mireBand] !== null && p[mireBand] !== undefined) {
+                const bTitle = mireBand.replace('intensite_mire_', '');
+                mireStr = `, Mire_${bTitle}=${round(p[mireBand], 1)} DN/s`;
+              }
+              return `${p.Site} / ${p.Plot}${varietyStr}${classStr}${timeStr}: ${currentXAxisLabel}=${round(p[currentXAxisVar], 1)}${leafDetails}${zenithStr}${mireStr}, indice=${round(p.value, 3)}${flag}`;
+            },
+          },
+        },
+        zoom: {
+          pan: { enabled: true, mode: 'xy', modifierKey: 'ctrl' },
+          zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'xy',
+          },
+        },
+      },
+      scales: {
+        x: { title: { display: true, text: currentXAxisLabel } },
+        y: { title: { display: true, text: currentIndexLabel } },
+      },
+    },
+  });
+
+  // Prepare Time Scatter datasets
+  const spadVals = visiblePoints.map(p => p.spad_mean).filter(v => v !== null && !isNaN(v));
+  const minSpad = spadVals.length ? Math.min(...spadVals) : 30;
+  const maxSpad = spadVals.length ? Math.max(...spadVals) : 60;
+
+  let timeDatasets;
+  if (groupVariety) {
+    timeDatasets = orderedGroups.map((v, i) => {
+      const pts = perGroupData[i].filter(p => timeStrToDecimal(p.time_hm) !== null);
+      return {
+        label: v,
+        data: pts.map(p => ({ x: timeStrToDecimal(p.time_hm), y: p.value })),
+        backgroundColor: pts.map(p => colorForSpad(p.spad_mean, minSpad, maxSpad)),
+        borderColor: pts.map(p => colorForVariety(v)),
+        borderWidth: 2,
+        pointRadius: 5.5,
+        hoverRadius: 7.5,
+      };
+    });
+  } else if (isClustering) {
+    timeDatasets = orderedGroups.map((key, i) => {
+      const [site, cluster] = key.split("::");
+      const color = colorForSiteCluster(site, cluster);
+      const pts = perGroupData[i].filter(p => timeStrToDecimal(p.time_hm) !== null);
+      return {
+        label: `${site} (${cluster})`,
+        data: pts.map(p => ({ x: timeStrToDecimal(p.time_hm), y: p.value })),
+        backgroundColor: pts.map(p => colorForSpad(p.spad_mean, minSpad, maxSpad)),
+        borderColor: color,
+        borderWidth: 2,
+        pointRadius: 5.5,
+        hoverRadius: 7.5,
+      };
+    });
+  } else {
+    timeDatasets = orderedGroups.map((s, i) => {
+      const pts = perGroupData[i].filter(p => timeStrToDecimal(p.time_hm) !== null);
+      return {
+        label: s,
+        data: pts.map(p => ({ x: timeStrToDecimal(p.time_hm), y: p.value })),
+        backgroundColor: pts.map(p => colorForSpad(p.spad_mean, minSpad, maxSpad)),
+        borderColor: colorForSite(s),
+        borderWidth: 2,
+        pointRadius: 5.5,
+        hoverRadius: 7.5,
+      };
+    });
+  }
+
+  const timeSelectedPoints = selectedPoints.map(p => ({ x: timeStrToDecimal(p.time_hm), y: p.value })).filter(pt => pt.x !== null);
+  const timeSelectionDataset = {
+    label: 'Sélection',
+    data: timeSelectedPoints,
+    backgroundColor: 'rgba(0,0,0,0)',
+    borderColor: '#000000',
+    borderWidth: 3,
+    pointRadius: 9,
+  };
+  const timeHighlightDataset = highlightedPoint && timeStrToDecimal(highlightedPoint.time_hm) !== null ? {
+    label: 'Image sélectionnée',
+    data: [{ x: timeStrToDecimal(highlightedPoint.time_hm), y: highlightedPoint.value }],
+    backgroundColor: '#ff6b00',
+    borderColor: '#8a2be2',
+    borderWidth: 3,
+    pointRadius: 8,
+    pointStyle: 'rectRot',
+  } : null;
+
+  const timeAllDatasets = [...timeDatasets];
+  if (timeHighlightDataset) timeAllDatasets.push(timeHighlightDataset);
+  if (timeSelectedPoints.length) timeAllDatasets.push(timeSelectionDataset);
+
+  if (chartTimeScatter) chartTimeScatter.destroy();
+  chartTimeScatter = new Chart(document.getElementById('chartTimeScatter'), {
+    type: 'scatter',
+    data: { datasets: timeAllDatasets },
+    options: {
+      responsive: true,
+      onClick: (evt, elements) => {
+        if (!elements.length) return;
+        const el = elements[0];
+        // The datasets list in Time chart has exact same structures or we can map back:
+        const ptList = el.datasetIndex === timeDatasets.length ? selectedPoints : 
+                     (el.datasetIndex === timeDatasets.length + 1 ? [highlightedPoint] : perGroupData[el.datasetIndex]);
+        if (ptList && ptList[el.index]) {
+          selectScatterPoint(ptList[el.index]);
+        }
+      },
+      plugins: {
+        legend: { display: groupVariety || isClustering },
+        title: { 
+          display: true, 
+          text: [
+            `Temps (Heure) vs ${currentIndexLabel}`,
+            `Remplissage : Dégradation de vert selon le SPAD (clair = faible, foncé = fort) | Bordure : Couleur de Site`
+          ]
+        },
+        tooltip: {
+          callbacks: {
+            title: () => '',
+            label: (ctx) => {
+              const ptList = ctx.datasetIndex === timeDatasets.length ? selectedPoints : 
+                           (ctx.datasetIndex === timeDatasets.length + 1 ? [highlightedPoint] : perGroupData[ctx.datasetIndex]);
+              const p = ptList?.[ctx.dataIndex];
+              if (!p) return '';
+              const flags = [];
+              if (highlightedPoint && pointKey(p) === highlightedPointKey) flags.push('image sélectionnée');
+              if (multiSelectedKeys.has(pointKey(p))) flags.push('sélectionné');
+              const flag = flags.length ? ` [${flags.join(', ')}]` : '';
+              const classStr = (p.class !== null && p.class !== undefined) ? ` [class=${p.class}]` : '';
+              const varietyStr = p.Variete ? ` (${p.Variete})` : '';
+              const timeStr = p.time_hm ? ` @ ${p.time_hm}` : '';
+              const zenithStr = (p.solar_zenith !== null && p.solar_zenith !== undefined) ? `, Zenith=${round(p.solar_zenith, 1)}°` : '';
+              const hasLeaf = p.Feuille_1 !== null && p.Feuille_1 !== undefined && !isNaN(p.Feuille_1);
+              const leafDetails = hasLeaf ? ` (F1=${round(p.Feuille_1, 1)}, F2=${round(p.Feuille_2, 1)}, F3=${round(p.Feuille_3, 1)}, F1+F2=${round(p.F1_F2, 1)})` : '';
+              return `${p.Site} / ${p.Plot}${varietyStr}${classStr}${timeStr}: ${currentXAxisLabel}=${round(p[currentXAxisVar], 1)}${leafDetails}${zenithStr}, indice=${round(p.value, 3)}${flag}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          title: { display: true, text: 'Heure de la journée' },
+          ticks: {
+            callback: function(value) {
+              const hour = Math.floor(value);
+              const min = Math.round((value - hour) * 60);
+              return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+            }
+          }
+        },
+        y: { title: { display: true, text: currentIndexLabel } },
+      },
+    },
+  });
+
+  refreshBoxplots(currentIndexLabel, orderedGroups, perGroupData, groupVariety);
+  return orderedSites;
+}
+
+const scatterCanvas = document.getElementById('chartScatter');
+const selectBoxEl = document.getElementById('selectBoxEl');
+let boxSelectStart = null;
+
+scatterCanvas.addEventListener('mousedown', (e) => {
+  if (e.button !== 0 || e.ctrlKey || e.metaKey) return;
+  boxSelectStart = { x: e.offsetX, y: e.offsetY };
+  selectBoxEl.style.display = 'block';
+  selectBoxEl.style.left = `${e.offsetX}px`;
+  selectBoxEl.style.top = `${e.offsetY}px`;
+  selectBoxEl.style.width = '0px';
+  selectBoxEl.style.height = '0px';
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!boxSelectStart) return;
+  const rect = scatterCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  selectBoxEl.style.left = `${Math.min(boxSelectStart.x, x)}px`;
+  selectBoxEl.style.top = `${Math.min(boxSelectStart.y, y)}px`;
+  selectBoxEl.style.width = `${Math.abs(x - boxSelectStart.x)}px`;
+  selectBoxEl.style.height = `${Math.abs(y - boxSelectStart.y)}px`;
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (!boxSelectStart) return;
+  const rect = scatterCanvas.getBoundingClientRect();
+  const endX = e.clientX - rect.left;
+  const endY = e.clientY - rect.top;
+  const x1 = Math.min(boxSelectStart.x, endX);
+  const x2 = Math.max(boxSelectStart.x, endX);
+  const y1 = Math.min(boxSelectStart.y, endY);
+  const y2 = Math.max(boxSelectStart.y, endY);
+  boxSelectStart = null;
+  selectBoxEl.style.display = 'none';
+
+  if (!chartScatter || (x2 - x1) < 4 && (y2 - y1) < 4) return;
+
+  const xScale = chartScatter.scales.x;
+  const yScale = chartScatter.scales.y;
+  const vMinX = xScale.getValueForPixel(x1);
+  const vMaxX = xScale.getValueForPixel(x2);
+  const vMaxY = yScale.getValueForPixel(y1);
+  const vMinY = yScale.getValueForPixel(y2);
+
+  const visiblePoints = scatterPoints.filter(p => !excludedKeys.has(pointKey(p)));
+  const inBox = visiblePoints.filter(p =>
+    p[currentXAxisVar] >= vMinX && p[currentXAxisVar] <= vMaxX && p.value >= vMinY && p.value <= vMaxY
+  );
+  multiSelectedKeys = new Set(inBox.map(pointKey));
+  renderScatterVisuals();
+});
+
+function excludePoint(p) {
+  excludedKeys.add(pointKey(p));
+  renderScatterVisuals();
+}
+
+function restoreExcludedPoints() {
+  excludedKeys.clear();
+  renderScatterVisuals();
+}
+
+function refreshBoxplots(indexLabel, orderedGroups, perGroupData, isVariety) {
+  const spadByGroup = perGroupData.map(pts => pts.map(p => p[currentXAxisVar]));
+  const indexByGroup = perGroupData.map(pts => pts.map(p => p.value));
+  const isClustering = document.getElementById('zenithClusterSel')?.value !== '0';
+  
+  const bgColors = orderedGroups.map((g) => {
+    if (isVariety) return colorForVariety(g) + '88';
+    if (isClustering) {
+      const [site, cluster] = g.split("::");
+      return colorForSiteCluster(site, cluster) + '88';
+    }
+    return colorForSite(g) + '88';
+  });
+  const borderColors = orderedGroups.map((g) => {
+    if (isVariety) return colorForVariety(g);
+    if (isClustering) {
+      const [site, cluster] = g.split("::");
+      return colorForSiteCluster(site, cluster);
+    }
+    return colorForSite(g);
+  });
+
+  if (chartBoxSpad) chartBoxSpad.destroy();
+  if (chartBoxIndex) chartBoxIndex.destroy();
+
+  const labelsFormatted = orderedGroups.map(g => {
+    if (isClustering && !isVariety) {
+      const [site, cluster] = g.split("::");
+      return `${site} (${cluster})`;
+    }
+    return g;
+  });
+
+  try {
+    chartBoxSpad = new Chart(document.getElementById('chartBoxSpad'), {
+      type: 'boxplot',
+      data: {
+        labels: labelsFormatted,
+        datasets: [{
+          label: X_AXIS_LABELS[currentXAxisVar] || 'SPAD', data: spadByGroup,
+          backgroundColor: bgColors,
+          borderColor: borderColors,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false }, title: { display: true, text: isVariety ? `Distribution ${X_AXIS_LABELS[currentXAxisVar]} par variété` : `Distribution ${X_AXIS_LABELS[currentXAxisVar]}` } },
+      },
+    });
+  } catch (e) {
+    console.error('Boxplot SPAD indisponible', e);
+  }
+
+  try {
+    chartBoxIndex = new Chart(document.getElementById('chartBoxIndex'), {
+      type: 'boxplot',
+      data: {
+        labels: labelsFormatted,
+        datasets: [{
+          label: indexLabel, data: indexByGroup,
+          backgroundColor: bgColors,
+          borderColor: borderColors,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false }, title: { display: true, text: isVariety ? `Distribution ${indexLabel} par variété` : `Distribution ${indexLabel}` } },
+      },
+    });
+  } catch (e) {
+    console.error('Boxplot indice indisponible', e);
+  }
+}
+
+async function refreshSpadNormal(sites, scenario) {
+  const { sites: results } = await loadSpadDistribution(sites, scenario, currentXAxisVar);
+
+  if (chartSpadNormal) chartSpadNormal.destroy();
+  if (!results.length) return;
+
+  const datasets = results.map(r => ({
+    label: r.site,
+    data: r.x.map((xi, i) => ({ x: xi, y: r.y[i] })),
+    showLine: true,
+    pointRadius: 0,
+    borderColor: colorForSite(r.site),
+    backgroundColor: colorForSite(r.site),
+  }));
+  const subtitle = results.map(r => `${r.site}: μ=${round(r.mu, 2)}, σ=${round(r.sigma, 2)}`).join('   ');
+
+  chartSpadNormal = new Chart(document.getElementById('chartSpadNormal'), {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: [`Distribution normale de ${X_AXIS_LABELS[currentXAxisVar] || 'SPAD'}`, subtitle] },
+      },
+      scales: {
+        x: { title: { display: true, text: X_AXIS_LABELS[currentXAxisVar] || 'SPAD' } },
+        y: { title: { display: true, text: 'Densité' } },
+      },
+    },
+  });
+}
+
+async function selectScatterPoint(p) {
+  const scenario = scatterScenarioSel.value;
+  highlightedPointKey = pointKey(p);
+
+  if (siteSel.value !== p.Site) {
+    siteSel.value = p.Site;
+    nameInput.disabled = false;
+    const names = await loadNames(p.Site, '');
+    nameList.innerHTML = names.map(n => `<option value="${n}">`).join('');
+
+    const scenarios = await loadScenarios(p.Site);
+    scenarioSel.disabled = scenarios.length === 0;
+    scenarioSel.innerHTML = '<option value="">-- choisir --</option>' +
+      scenarios.map(s => `<option value="${s}">${s}</option>`).join('');
+    if (scenarios.includes(scenario)) scenarioSel.value = scenario;
+  } else if ([...scenarioSel.options].some(o => o.value === scenario)) {
+    scenarioSel.value = scenario;
+  }
+
+  nameInput.value = p.name;
+  refreshImages();
+  refreshStats();
+  renderScatterVisuals();
+
+  const statLabel = statSel.options[statSel.selectedIndex]?.textContent || '';
+  const indexLabel = indexSel.options[indexSel.selectedIndex]?.textContent || 'Indice';
+  const rows = [
+    ['Site', p.Site],
+    ['Plot', p.Plot],
+    ['Nom', p.name],
+    ...(p.class !== null && p.class !== undefined ? [['Classe', p.class]] : []),
+    ['Scenario', scatterScenarioSel.value],
+    ['Date / Heure', p.DateTime || '-'],
+    ['SPAD (moyenne)', round(p.spad_mean, 1)],
+    ['Feuille 1', round(p.Feuille_1, 1)],
+    ['Feuille 2', round(p.Feuille_2, 1)],
+    ['Feuille 3', round(p.Feuille_3, 1)],
+    ['Moyenne F1+F2', round(p.F1_F2, 1)],
+    ['Heure (HH:MM)', p.time_hm || '-'],
+    ['Angle Zénithal Solaire', p.solar_zenith !== null && p.solar_zenith !== undefined ? `${round(p.solar_zenith, 1)}°` : '-'],
+    [indexLabel, round(p.value, 3)],
+    [`R (${statLabel})`, round(p.stat_R)],
+    [`G (${statLabel})`, round(p.stat_G)],
+    [`B (${statLabel})`, round(p.stat_B)],
+    [`NIR (${statLabel})`, round(p.stat_NIR)],
+    ...(p.intensite_mire_R !== null && p.intensite_mire_R !== undefined ? [
+      [mireColorSel?.value === 'intensite_mire_R' ? '🔴 Intensité Mire R (active)' : 'Intensité Mire R', `${round(p.intensite_mire_R, 1)} DN/s`],
+      [mireColorSel?.value === 'intensite_mire_G' ? '🟢 Intensité Mire G (active)' : 'Intensité Mire G', `${round(p.intensite_mire_G, 1)} DN/s`],
+      [mireColorSel?.value === 'intensite_mire_B' ? '🔵 Intensité Mire B (active)' : 'Intensité Mire B', `${round(p.intensite_mire_B, 1)} DN/s`],
+      [mireColorSel?.value === 'intensite_mire_NIR' ? '🟣 Intensité Mire NIR (active)' : 'Intensité Mire NIR', `${round(p.intensite_mire_NIR, 1)} DN/s`],
+      ['DN Mire Gris R', round(p.DN_gris_R, 1)],
+      ['DN Mire Gris NIR', round(p.DN_gris_NIR, 1)],
+    ] : []),
+    ['Aberrant SPAD', p.outlier_spad ? 'oui' : 'non'],
+    ['Aberrant indice', p.outlier_index ? 'oui' : 'non'],
+  ];
+  pointDetailsBody.innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+  pointInfo.style.display = 'block';
+}
+
+function syncHighlightedPointFromSelection() {
+  const site = siteSel.value;
+  const name = nameInput.value.trim();
+  if (!site || !name) {
+    highlightedPointKey = '';
+    return;
+  }
+  const match = scatterPoints.find(p => p.Site === site && p.name === name);
+  highlightedPointKey = match ? pointKey(match) : '';
+}
+
+async function searchSelectedImage() {
+  const site = siteSel.value;
+  const name = nameInput.value.trim();
+  if (!site) {
+    grid.style.display = 'none';
+    message.style.display = 'block';
+    message.textContent = 'Choisissez un site puis un nom.';
+    return;
+  }
+  if (!name) {
+    grid.style.display = 'none';
+    message.style.display = 'block';
+    message.textContent = 'Saisissez un nom d’image à rechercher.';
+    return;
+  }
+  syncHighlightedPointFromSelection();
+  refreshImages();
+  await refreshStats();
+  await showSearchImageDetails();
+  renderScatterVisuals();
+}
+
+function refreshImages() {
+  const site = siteSel.value;
+  const name = nameInput.value.trim();
+  const scenario = scenarioSel.value;
+  if (!site || !name) {
+    highlightedPointKey = '';
+    grid.style.display = 'none';
+    message.style.display = 'block';
+    message.textContent = 'Choisissez un site puis un nom.';
+    return;
+  }
+  message.style.display = 'none';
+  grid.style.display = 'grid';
+
+  setImg('img-rgb', `/img/rgb/${encodeURIComponent(site)}/${encodeURIComponent(name)}`);
+  setImg('img-mask-combined', `/img/mask_combined/${encodeURIComponent(site)}/${encodeURIComponent(name)}`);
+  setImg('img-metadata', `/img/metadata/${encodeURIComponent(site)}/${encodeURIComponent(name)}`);
+  setImg('img-regression', `/img/regression/${encodeURIComponent(site)}/${encodeURIComponent(name)}`);
+
+  refreshIndexHeatmap();
+}
+
+function refreshIndexHeatmap() {
+  const site = siteSel.value;
+  const name = nameInput.value.trim();
+  const pixelValueLabel = document.getElementById('pixelValueLabel');
+  if (!site || !name) return;
+  const index = heatmapIndexSel.value;
+  setImg('img-index-heatmap', `/img/index_heatmap/${encodeURIComponent(site)}/${encodeURIComponent(name)}?index=${encodeURIComponent(index)}`);
+  pixelValueLabel.textContent = "Cliquez sur la carte pour lire la valeur d'un pixel.";
+}
+
+const heatmapIndexSel = document.getElementById('heatmapIndexSel');
+heatmapIndexSel.addEventListener('change', () => { refreshIndexHeatmap(); });
+
+const indexHeatmapImg = document.getElementById('img-index-heatmap');
+indexHeatmapImg.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const site = siteSel.value;
+  const name = nameInput.value.trim();
+  const pixelValueLabel = document.getElementById('pixelValueLabel');
+  if (!site || !name || !indexHeatmapImg.naturalWidth) return;
+
+  const rect = indexHeatmapImg.getBoundingClientRect();
+  const scaleX = indexHeatmapImg.naturalWidth / rect.width;
+  const scaleY = indexHeatmapImg.naturalHeight / rect.height;
+  const x = Math.min(indexHeatmapImg.naturalWidth - 1, Math.max(0, Math.round((e.clientX - rect.left) * scaleX)));
+  const y = Math.min(indexHeatmapImg.naturalHeight - 1, Math.max(0, Math.round((e.clientY - rect.top) * scaleY)));
+
+  const index = heatmapIndexSel.value;
+  try {
+    const res = await fetch(`/api/pixel_value/${encodeURIComponent(site)}/${encodeURIComponent(name)}?index=${encodeURIComponent(index)}&x=${x}&y=${y}`);
+    const data = await res.json();
+    pixelValueLabel.textContent = (data.value === null || data.value === undefined)
+      ? `Pixel (${x}, ${y}) — hors masque`
+      : `Pixel (${x}, ${y}) — ${index} = ${data.value.toFixed(4)}`;
+  } catch (err) {
+    pixelValueLabel.textContent = 'Erreur lors de la lecture de la valeur.';
+  }
+});
+
+siteSel.addEventListener('change', async () => {
+  const site = siteSel.value;
+  nameInput.value = '';
+  nameList.innerHTML = '';
+  scenarioSel.innerHTML = '<option value="">-- choisir --</option>';
+  pointInfo.style.display = 'none';
+
+  if (!site) {
+    nameInput.disabled = true;
+    scenarioSel.disabled = true;
+    refreshImages();
+    refreshStats();
+    return;
+  }
+
+  nameInput.disabled = false;
+  const searchClass = searchClassFilter ? searchClassFilter.value : 'all';
+  const names = await loadNames(site, '', searchClass);
+  nameList.innerHTML = names.map(n => `<option value="${n}">`).join('');
+
+  const scenarios = await loadScenarios(site);
+  scenarioSel.disabled = scenarios.length === 0;
+  scenarioSel.innerHTML += scenarios.map(s => `<option value="${s}">${s}</option>`).join('');
+  const preferred = 'Vegetation-no-specular-no-shadow-no-epi-no-tige';
+  if (scenarios.includes(preferred)) {
+    scenarioSel.value = preferred;
+  } else if (scenarios.includes('Combined')) {
+    scenarioSel.value = 'Combined';
+  } else if (scenarios.length > 0) {
+    scenarioSel.value = scenarios[0];
+  }
+
+  refreshImages();
+  refreshStats();
+});
+
+let debounceTimer;
+nameInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(async () => {
+    const site = siteSel.value;
+    if (!site) return;
+    const searchClass = searchClassFilter ? searchClassFilter.value : 'all';
+    const names = await loadNames(site, nameInput.value, searchClass);
+    nameList.innerHTML = names.map(n => `<option value="${n}">`).join('');
+  }, 200);
+});
+
+nameInput.addEventListener('change', () => { searchSelectedImage(); });
+nameInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    searchSelectedImage();
+  }
+});
+document.getElementById('searchBtn').addEventListener('click', () => { searchSelectedImage(); });
+scenarioSel.addEventListener('change', async () => {
+  refreshImages();
+  await refreshStats();
+  await showSearchImageDetails();
+});
+scatterScenarioSel.addEventListener('change', refreshScatter);
+indexSel.addEventListener('change', () => { updateDeleteBtnVisibility(); refreshScatter(); });
+statSel.addEventListener('change', () => { refreshScatter(); refreshStats(); });
+xAxisSel.addEventListener('change', () => {
+  currentXAxisVar = xAxisSel.value;
+  renderScatterVisuals();
+  refreshSpadNormal(currentSites, currentScenario);
+});
+excludeIndexOutliersChk.addEventListener('change', refreshScatter);
+excludeSpadOutliersChk.addEventListener('change', refreshScatter);
+showSolarZenithValChk.addEventListener('change', renderScatterVisuals);
+document.getElementById('zenithClusterSel')?.addEventListener('change', refreshScatter);
+if (classFilterSel) {
+  classFilterSel.addEventListener('change', refreshScatter);
+}
+if (mireColorSel) {
+  mireColorSel.addEventListener('change', renderScatterVisuals);
+}
+if (mirePaletteSel) {
+  mirePaletteSel.addEventListener('change', renderScatterVisuals);
+}
+if (groupByClassChk) {
+  groupByClassChk.addEventListener('change', () => {
+    if (groupByClassChk.checked && groupByVarietyChk) {
+      groupByVarietyChk.checked = false;
+      updateVarietyFilters();
+    }
+    renderScatterVisuals();
+  });
+}
+if (searchClassFilter) {
+  searchClassFilter.addEventListener('change', async () => {
+    const site = siteSel.value;
+    if (!site) return;
+    const names = await loadNames(site, nameInput.value, searchClassFilter.value);
+    nameList.innerHTML = names.map(n => `<option value="${n}">`).join('');
+  });
+}
+groupByVarietyChk.addEventListener('change', () => {
+  if (groupByVarietyChk.checked && groupByClassChk) {
+    groupByClassChk.checked = false;
+  }
+  updateVarietyFilters();
+  renderScatterVisuals();
+});
+document.getElementById('resetZoomBtn').addEventListener('click', () => chartScatter && chartScatter.resetZoom());
+document.getElementById('restoreExcludedBtn').addEventListener('click', restoreExcludedPoints);
+document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+  multiSelectedKeys.clear();
+  renderScatterVisuals();
+});
+document.getElementById('chartScatter').addEventListener('dblclick', (evt) => {
+  if (!chartScatter) return;
+  const elements = chartScatter.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+  if (!elements.length) return;
+  const { datasetIndex, index } = elements[0];
+  const p = pointsByDataset[datasetIndex]?.[index];
+  if (!p) return;
+  excludePoint(p);
+});
+
+initSiteChecks();
+Promise.all([initIndices(), initStatsOptions(), initScatterScenario()]).then(refreshScatter);
+</script>
+
+<!-- Modal de création d'indice -->
+<div id="builderModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+  <div class="card" style="background: #222; color: #fff; width: 90%; max-width: 600px; padding: 1.5rem; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 1.2rem; border: 1px solid rgba(255,255,255,0.1);">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
+      <h3 style="margin: 0; font-size: 1.2rem;">Créer un nouvel indice spectral</h3>
+      <button type="button" id="closeBuilderBtn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: inherit;">&times;</button>
+    </div>
+    
+    <div class="field" style="display: flex; flex-direction: column; gap: 0.25rem;">
+      <label for="customIndexName" style="font-size: .8rem; opacity: .75;">Nom de l'indice (ex: NDVI, EVI)</label>
+      <input type="text" id="customIndexName" placeholder="Entrez le nom de l'indice..." style="width: 100%; box-sizing: border-box; min-width: unset; padding: 0.4rem 0.5rem; font-size: 0.95rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: #333; color: #fff;">
+    </div>
+
+    <div class="field" style="display: flex; flex-direction: column; gap: 0.25rem;">
+      <label for="customIndexFormula" style="font-size: .8rem; opacity: .75;">Formule / Relation (ex: (NIR - R) / (NIR + R))</label>
+      <input type="text" id="customIndexFormula" placeholder="Entrez la formule..." style="width: 100%; box-sizing: border-box; min-width: unset; padding: 0.4rem 0.5rem; font-size: 0.95rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: #333; color: #fff; font-family: monospace;">
+    </div>
+    
+    <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; line-height: 1.4;">
+      <strong style="color: #4c8bf5;">Guide de syntaxe :</strong>
+      <ul style="margin: 0.3rem 0 0; padding-left: 1.2rem; opacity: 0.85;">
+        <li>Variables autorisées (sensibles à la casse) : <code style="color: #e74c3c; font-weight: bold;">R</code>, <code style="color: #2ecc71; font-weight: bold;">G</code>, <code style="color: #4c8bf5; font-weight: bold;">B</code>, <code style="color: #9b59b6; font-weight: bold;">NIR</code></li>
+        <li>Opérateurs acceptés : <code style="color: #e08a2b;">+</code>, <code style="color: #e08a2b;">-</code>, <code style="color: #e08a2b;">*</code>, <code style="color: #e08a2b;">/</code>, <code style="color: #7f8c8d;">(</code>, <code style="color: #7f8c8d;">)</code> et les nombres décimaux</li>
+      </ul>
+    </div>
+    
+    <div id="builderError" class="error" style="display: none; background: rgba(211, 47, 47, 0.2); color: #ff8888; padding: 0.6rem; border-radius: 4px; font-size: 0.85rem; border: 1px solid rgba(211,47,47,0.3);"></div>
+    
+    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+      <button type="button" id="cancelBuilderBtn" style="padding: 0.5rem 1rem; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #fff; border-radius: 6px; cursor: pointer;">Annuler</button>
+      <button type="button" id="saveCustomIndexBtn" style="padding: 0.5rem 1rem; background: #4c8bf5; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Modal builder controls
+const openBuilderBtn = document.getElementById('openBuilderBtn');
+const deleteIndexBtn = document.getElementById('deleteIndexBtn');
+const builderModal = document.getElementById('builderModal');
+const closeBuilderBtn = document.getElementById('closeBuilderBtn');
+const cancelBuilderBtn = document.getElementById('cancelBuilderBtn');
+const saveCustomIndexBtn = document.getElementById('saveCustomIndexBtn');
+const customIndexName = document.getElementById('customIndexName');
+const customIndexFormula = document.getElementById('customIndexFormula');
+const builderError = document.getElementById('builderError');
+
+openBuilderBtn.addEventListener('click', () => {
+  customIndexName.value = '';
+  customIndexFormula.value = '';
+  builderError.style.display = 'none';
+  builderError.textContent = '';
+  builderModal.style.display = 'flex';
+});
+
+function closeBuilder() {
+  builderModal.style.display = 'none';
+}
+closeBuilderBtn.addEventListener('click', closeBuilder);
+cancelBuilderBtn.addEventListener('click', closeBuilder);
+
+// Save Custom Index
+saveCustomIndexBtn.addEventListener('click', async () => {
+  const name = customIndexName.value.trim();
+  const formula = customIndexFormula.value.trim();
+  
+  if (!name) {
+    builderError.textContent = "Le nom de l'indice est requis.";
+    builderError.style.display = 'block';
+    return;
+  }
+  if (!formula) {
+    builderError.textContent = "La formule ne peut pas être vide.";
+    builderError.style.display = 'block';
+    return;
+  }
+  
+  builderError.style.display = 'none';
+  
+  try {
+    const res = await fetch('/api/indices/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, formula })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      builderError.textContent = data.error || "Erreur lors de l'enregistrement.";
+      builderError.style.display = 'block';
+    } else {
+      closeBuilder();
+      await initIndices();
+      indexSel.value = data.key;
+      updateDeleteBtnVisibility();
+      refreshScatter();
+    }
+  } catch (err) {
+    builderError.textContent = "Erreur de connexion avec le serveur.";
+    builderError.style.display = 'block';
+  }
+});
+
+// Delete Custom Index
+deleteIndexBtn.addEventListener('click', async () => {
+  const selectedOpt = indexSel.options[indexSel.selectedIndex];
+  const key = indexSel.value;
+  if (!selectedOpt || selectedOpt.dataset.custom !== 'true') return;
+  
+  if (!confirm(`Voulez-vous vraiment supprimer l'indice personnalisé "${selectedOpt.textContent}" ?`)) {
+    return;
+  }
+  
+  try {
+    const res = await fetch(`/api/indices/delete/${encodeURIComponent(key)}`, {
+      method: 'DELETE'
+    });
+    if (res.ok) {
+      await initIndices();
+      refreshScatter();
+    } else {
+      alert("Erreur lors de la suppression.");
+    }
+  } catch (err) {
+    alert("Erreur de connexion.");
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+qpcard:
+  patches:
+    - patch_id: 1
+      reflectance:
+        R: 0.071405
+        G: 0.072839
+        B: 0.072962
+        NIR: 0.065163
+
+    - patch_id: 2
+      reflectance:
+        R: 0.152181
+        G: 0.156171
+        B: 0.155624
+        NIR: 0.132566
+
+    - patch_id: 3
+      reflectance:
+        R: 0.815291
+        G: 0.806183
+        B: 0.787966
+        NIR: 0.872626

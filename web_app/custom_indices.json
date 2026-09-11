@@ -1,0 +1,118 @@
+{
+  "gar": {
+    "name": "GAR",
+    "formula": "R + G"
+  },
+  "ngi": {
+    "name": "NGI",
+    "formula": "G / ( R + G + B )"
+  },
+  "grvi": {
+    "name": "GRVI",
+    "formula": "NIR/G"
+  },
+  "dvi": {
+    "name": "dvi",
+    "formula": "NIR - G"
+  },
+  "vari": {
+    "name": "VARI",
+    "formula": "(G-R)/(G + R-B)"
+  },
+  "b": {
+    "name": "B",
+    "formula": "B"
+  },
+  "r": {
+    "name": "r",
+    "formula": "R/B"
+  },
+  "g": {
+    "name": "G",
+    "formula": "G"
+  },
+  "nir": {
+    "name": "NIR",
+    "formula": "NIR"
+  },
+  "sss": {
+    "name": "sss",
+    "formula": "(G-R)/(G + R-B)"
+  },
+  "pas": {
+    "name": "PAS",
+    "formula": "(R-B)/(R+B)"
+  },
+  "nirg": {
+    "name": "nirg",
+    "formula": "(NIR-B)/(G-B)"
+  },
+  "nirgb": {
+    "name": "nirgb",
+    "formula": "NIR/(G-B)"
+  },
+  "nirgbr": {
+    "name": "nirgbr",
+    "formula": "(NIR-(R+B)/2)/(G-(R+B)/2)"
+  },
+  "cg": {
+    "name": "cg",
+    "formula": "NIR/G -1"
+  },
+  "mtci_green": {
+    "name": "mtci_green",
+    "formula": "(NIR-G)/(G-B)"
+  },
+  "mtci_gr": {
+    "name": "mtci_gr",
+    "formula": "(NIR-G)/(G-R)"
+  },
+  "mndblue1": {
+    "name": "mNDblue1",
+    "formula": "(B - R) / (B + NIR)"
+  },
+  "mndblue22": {
+    "name": "mNDblue22",
+    "formula": "(B - G) / (B + NIR)"
+  },
+  "gb": {
+    "name": "gb",
+    "formula": "G-B"
+  },
+  "gbnir": {
+    "name": "gbnir",
+    "formula": "(G-B)/NIR"
+  },
+  "exg": {
+    "name": "EXG",
+    "formula": "2*G -R -B"
+  },
+  "fd": {
+    "name": "FD",
+    "formula": "R + G - B"
+  },
+  "gmr": {
+    "name": "GMR",
+    "formula": "G-R"
+  },
+  "rgrg": {
+    "name": "(R-G)/(R+G)",
+    "formula": "(R-G)/(R+G)"
+  },
+  "f": {
+    "name": "f",
+    "formula": "(G-B)/(G+B)"
+  },
+  "erezr": {
+    "name": "erezr",
+    "formula": "NIR/(G-R)"
+  },
+  "mndblue111": {
+    "name": "mndblue111",
+    "formula": "(B - R)/(R + NIR)"
+  },
+  "qeze": {
+    "name": "qeze",
+    "formula": "R/NIR"
+  }
+}
