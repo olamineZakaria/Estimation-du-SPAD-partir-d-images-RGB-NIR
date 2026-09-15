@@ -14,6 +14,8 @@ Ce projet construit un jeu de données reliant des mesures de chlorophylle **SPA
 
 Le pipeline principal est un ensemble de scripts Python autonomes. Il n’utilise ni Airflow ni DAG et ne sauvegarde aucun tableau `.npy` ni graphique de distribution des indices.
 
+Documentation complémentaire : [app_data](app_data/)
+
 ## Vue d’ensemble du flux
 
 ```mermaid
@@ -87,6 +89,7 @@ zakaria/
 │   ├── app.py
 │   ├── custom_indices.json
 │   └── templates/index.html
+├── app_data/                       # documentation complémentaire
 ├── simple.ipynb                    # analyse et régression SPAD
 └── README.md
 ```

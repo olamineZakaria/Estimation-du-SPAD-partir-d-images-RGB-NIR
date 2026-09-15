@@ -114,5 +114,9 @@
   "qeze": {
     "name": "qeze",
     "formula": "R/NIR"
+  },
+  "fddf": {
+    "name": "fddf",
+    "formula": "NIR/G * 3"
   }
 }

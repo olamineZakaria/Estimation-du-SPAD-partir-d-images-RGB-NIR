@@ -1,0 +1,17 @@
+# Traitement scientifique et images
+numpy>=1.24,<3
+pandas>=2.0,<3
+scipy>=1.10,<2
+scikit-learn>=1.3,<2
+opencv-python-headless>=4.8,<5
+matplotlib>=3.7,<4
+
+# Données et configuration
+openpyxl>=3.1,<4
+PyYAML>=6,<7
+Pillow>=10,<13
+
+# Application web et notebook
+Flask>=3.0,<4
+gunicorn>=22,<24
+notebook>=7,<8
